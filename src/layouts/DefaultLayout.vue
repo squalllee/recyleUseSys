@@ -2,14 +2,25 @@
 import { ref, watch } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 
 const auth = useAuthStore()
 const router = useRouter()
+const route = useRoute()
 
-const currentPath = ref(router.currentRoute.value.fullPath.split('?')[0])
-watch(() => router.currentRoute.value.fullPath, (path) => {
+const currentPath = ref(route.fullPath.split('?')[0])
+watch(() => route.fullPath, (path) => {
   currentPath.value = path.split('?')[0]
 })
+
+const isRotating = ref(false)
+
+const handleRefresh = () => {
+  isRotating.value = true
+  setTimeout(() => {
+    window.location.reload()
+  }, 500)
+}
 
 const handleLogout = () => {
   auth.logout()
@@ -26,9 +37,21 @@ const handleLogout = () => {
     >
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <svg class="w-6 h-6 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-          </svg>
+          <button
+            @click="() => window.location.reload()"
+            class="p-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-200"
+            :title="'重新整理'"
+          >
+            <svg
+              class="w-6 h-6 flex-shrink-0 transition-transform duration-300"
+              :class="{ 'rotate-180': isRotating }"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+            </svg>
+          </button>
           <h1 class="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
             可修件管理系統
           </h1>
@@ -71,7 +94,8 @@ const handleLogout = () => {
         </a>
         <a
           href="/repairable-parts"
-          class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-slate-50 hover:translate-x-1"
+          @click.prevent="router.push('/repairable-parts')"
+          class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-slate-50 hover:translate-x-1 cursor-pointer"
           :class="currentPath === '/repairable-parts' ? '!bg-blue-50 !text-blue-700' : ''"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

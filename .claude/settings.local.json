@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git clone *)",
+      "Read(//d/Source/recycleUseSystem/**)",
+      "Bash(npm install *)",
+      "Bash(uipro --help)",
+      "Bash(npx uipro *)"
+    ]
+  }
+}

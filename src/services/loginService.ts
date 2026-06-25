@@ -23,5 +23,7 @@ export async function loginService(username: string, password: string): Promise<
     ok: response.ok,
     message: data.message ?? '',
     user_info: data.user_info ?? null,
+
+    
   }
 }
