@@ -1,11 +1,15 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { loginService } from '../services/loginService'
 
 const router = useRouter()
 const auth = useAuthStore()
+const redirectPath = computed(() => {
+  const redirect = router.currentRoute.value.query.redirect
+  return typeof redirect === 'string' && redirect.startsWith('/') ? redirect : '/'
+})
 
 const email = ref('')
 const password = ref('')
@@ -49,7 +53,7 @@ const handleSubmit = async () => {
         localStorage.setItem('rememberedEmail', email.value)
       }
       auth.login(result.user_info ?? { TMNAME: email.value, JOBName: '' })
-      router.push('/')
+      router.push(redirectPath.value)
     } else {
       alert(result.message || '帳號或密碼錯誤')
       errorMessage.value = result.message || '登入失敗，請重試'

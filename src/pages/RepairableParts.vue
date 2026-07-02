@@ -32,20 +32,25 @@ const actionPhrases = ref<ActionPhrase[]>([])
 const equipmentRecords = ref<EquipmentMaintenanceRecord[]>([])
 
 // Loading states
-const loading = {
+const loading = ref({
   'maint-type': false,
   'fault-reason': false,
   'action': false,
   'equipment': false,
-}
+})
 
 // Modal states
-const modal = {
+const modal = ref<{
+  visible: boolean
+  type: 'maint-type' | 'fault-reason' | 'action' | 'equipment' | ''
+  mode: 'create' | 'update'
+  data: any
+}>({
   visible: false,
-  type: '' as 'maint-type' | 'fault-reason' | 'action' | 'equipment' | '',
-  mode: 'create' as 'create' | 'update',
-  data: {} as any,
-}
+  type: '',
+  mode: 'create',
+  data: {},
+})
 
 // Form data
 const form = ref({
@@ -67,7 +72,7 @@ const form = ref({
   // For equipment
   materialNo: '',
   serialNumber: '',
-  id: '',
+  id: null as number | null | string,
   systemCode: '',
   inChargeID: '',
   purchaseDate: '',
@@ -92,10 +97,10 @@ const form = ref({
 
 // Load data
 const loadData = async () => {
-  loading['maint-type'] = true
-  loading['fault-reason'] = true
-  loading['action'] = true
-  loading['equipment'] = true
+  loading.value['maint-type'] = true
+  loading.value['fault-reason'] = true
+  loading.value['action'] = true
+  loading.value['equipment'] = true
 
   try {
     const [maint, fault, action, equipment] = await Promise.all([
@@ -111,10 +116,10 @@ const loadData = async () => {
   } catch (error) {
     console.error('Failed to load data:', error)
   } finally {
-    loading['maint-type'] = false
-    loading['fault-reason'] = false
-    loading['action'] = false
-    loading['equipment'] = false
+    loading.value['maint-type'] = false
+    loading.value['fault-reason'] = false
+    loading.value['action'] = false
+    loading.value['equipment'] = false
   }
 }
 
@@ -128,22 +133,24 @@ const openModal = (
   mode: 'create' | 'update',
   data?: any
 ) => {
-  modal.visible = true
-  modal.type = type
-  modal.mode = mode
+  modal.value.visible = true
+  modal.value.type = type
+  modal.value.mode = mode
 
   if (mode === 'update' && data) {
-    modal.data = { ...data }
+    modal.value.data = { ...data }
     populateForm(type, data)
   } else {
+    modal.value.data = {}
     resetForm(type)
   }
 }
 
 const closeModal = () => {
-  modal.visible = false
-  modal.type = ''
-  modal.mode = 'create'
+  modal.value.visible = false
+  modal.value.type = ''
+  modal.value.mode = 'create'
+  modal.value.data = {}
 }
 
 const populateForm = (type: string, data: any) => {
@@ -202,7 +209,7 @@ const resetForm = (type: string) => {
   } else if (type === 'equipment') {
     form.value.materialNo = ''
     form.value.serialNumber = ''
-    form.value.id = ''
+    form.value.id = null
     form.value.systemCode = ''
     form.value.inChargeID = ''
     form.value.purchaseDate = ''
@@ -229,40 +236,40 @@ const resetForm = (type: string) => {
 // CRUD handlers
 const handleSave = async () => {
   try {
-    if (modal.type === 'maint-type') {
+    if (modal.value.type === 'maint-type') {
       const data = {
         TypeName: form.value.maintTypeName,
         SortOrder: form.value.maintTypeSortOrder ? Number(form.value.maintTypeSortOrder) : null,
         IsActive: form.value.maintTypeIsActive,
       }
-      if (modal.mode === 'create') {
+      if (modal.value.mode === 'create') {
         await createMaintTypePhrase(data)
       } else {
-        await updateMaintTypePhrase(modal.data.MaintTypeID, data)
+        await updateMaintTypePhrase(modal.value.data.MaintTypeID, data)
       }
-    } else if (modal.type === 'fault-reason') {
+    } else if (modal.value.type === 'fault-reason') {
       const data = {
         ReasonName: form.value.faultReasonName,
         SortOrder: form.value.faultReasonSortOrder ? Number(form.value.faultReasonSortOrder) : null,
         IsActive: form.value.faultReasonIsActive,
       }
-      if (modal.mode === 'create') {
+      if (modal.value.mode === 'create') {
         await createFaultReasonPhrase(data)
       } else {
-        await updateFaultReasonPhrase(modal.data.ReasonID, data)
+        await updateFaultReasonPhrase(modal.value.data.ReasonID, data)
       }
-    } else if (modal.type === 'action') {
+    } else if (modal.value.type === 'action') {
       const data = {
         ActionName: form.value.actionName,
         SortOrder: form.value.actionSortOrder ? Number(form.value.actionSortOrder) : null,
         IsActive: form.value.actionIsActive,
       }
-      if (modal.mode === 'create') {
+      if (modal.value.mode === 'create') {
         await createActionPhrase(data)
       } else {
-        await updateActionPhrase(modal.data.ActionID, data)
+        await updateActionPhrase(modal.value.data.ActionID, data)
       }
-    } else if (modal.type === 'equipment') {
+    } else if (modal.value.type === 'equipment') {
       const data = {
         MaterialNo: form.value.materialNo,
         SerialNumber: form.value.serialNumber,
@@ -288,13 +295,13 @@ const handleSave = async () => {
         CompletionDate: form.value.completionDate || null,
         Remarks: form.value.remarks || null,
       }
-      if (modal.mode === 'create') {
+      if (modal.value.mode === 'create') {
         await createEquipmentMaintenanceRecord(data)
       } else {
         await updateEquipmentMaintenanceRecord(
-          modal.data.MaterialNo,
-          modal.data.SerialNumber,
-          modal.data.Id,
+          modal.value.data.MaterialNo,
+          modal.value.data.SerialNumber,
+          modal.value.data.Id,
           data
         )
       }
@@ -307,7 +314,7 @@ const handleSave = async () => {
   }
 }
 
-const handleDelete = async (id: number, type: string) => {
+const handleDelete = async (id: any, type: string) => {
   if (!confirm(`確定要刪除這筆資料嗎？`)) return
 
   try {
@@ -319,9 +326,9 @@ const handleDelete = async (id: number, type: string) => {
       await deleteActionPhrase(id)
     } else if (type === 'equipment') {
       await deleteEquipmentMaintenanceRecord(
-        (id as unknown as EquipmentMaintenanceRecord).MaterialNo,
-        (id as unknown as EquipmentMaintenanceRecord).SerialNumber,
-        (id as unknown as EquipmentMaintenanceRecord).Id
+        id.MaterialNo,
+        id.SerialNumber,
+        id.Id
       )
     }
     loadData()
@@ -359,54 +366,31 @@ const getTabLabel = (type: string) => {
 </script>
 
 <template>
-  <div>
+  <div class="p-4 max-w-7xl mx-auto">
     <h2 class="text-xl font-bold text-slate-900 mb-4">可修件維護</h2>
 
-    <!-- Tabs -->
     <div class="mb-4 border-b border-slate-200">
       <nav class="-mb-px flex gap-6" aria-label="Tabs">
         <button
-          @click="activeTab = 'maint-type'"
+          v-for="tab in ['maint-type', 'fault-reason', 'action', 'equipment'] as const"
+          :key="tab"
+          @click="activeTab = tab"
           class="whitespace-nowrap pb-3 px-1 border-b-2 font-medium text-sm transition-colors"
-          :class="activeTab === 'maint-type' ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'"
+          :class="activeTab === tab ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'"
         >
-          維修物件類型
-        </button>
-        <button
-          @click="activeTab = 'fault-reason'"
-          class="whitespace-nowrap pb-3 px-1 border-b-2 font-medium text-sm transition-colors"
-          :class="activeTab === 'fault-reason' ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'"
-        >
-          故障原因類型
-        </button>
-        <button
-          @click="activeTab = 'action'"
-          class="whitespace-nowrap pb-3 px-1 border-b-2 font-medium text-sm transition-colors"
-          :class="activeTab === 'action' ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'"
-        >
-          處理方式類型
-        </button>
-        <button
-          @click="activeTab = 'equipment'"
-          class="whitespace-nowrap pb-3 px-1 border-b-2 font-medium text-sm transition-colors"
-          :class="activeTab === 'equipment' ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'"
-        >
-          設備維修記錄
+          {{ getTabLabel(tab) }}
         </button>
       </nav>
     </div>
 
-    <!-- Content -->
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-      <!-- Toolbar -->
-      <div class="p-4 border-b border-slate-200 flex justify-between items-center">
+      <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/50">
         <p class="text-sm text-slate-600">
-          共
-          <span class="font-semibold text-blue-600">{{ getCount(activeTab) }} 筆資料</span>
+          共 <span class="font-semibold text-blue-600">{{ getCount(activeTab) }} 筆資料</span>
         </p>
         <button
           @click="openModal(activeTab, 'create')"
-          class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+          class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2 shadow-sm"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -415,19 +399,15 @@ const getTabLabel = (type: string) => {
         </button>
       </div>
 
-      <!-- Loading state -->
       <div v-if="loading[activeTab]" class="p-8 text-center">
-        <p class="text-slate-500">載入中...</p>
+        <p class="text-slate-500 animate-pulse">載入中...</p>
       </div>
 
-      <!-- Empty state -->
       <div v-else-if="getCount(activeTab) === 0" class="p-8 text-center">
         <p class="text-slate-500">尚無資料</p>
       </div>
 
-      <!-- Data tables -->
       <div v-else>
-        <!-- Maintain Type Table -->
         <div v-if="activeTab === 'maint-type'" class="overflow-x-auto">
           <table class="min-w-full divide-y divide-slate-200">
             <thead class="bg-slate-50">
@@ -450,26 +430,15 @@ const getTabLabel = (type: string) => {
                     {{ item.IsActive ? '啟用' : '停用' }}
                   </span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end gap-2">
-                  <button
-                    @click="openModal('maint-type', 'update', item)"
-                    class="text-blue-600 hover:text-blue-900"
-                  >
-                    編輯
-                  </button>
-                  <button
-                    @click="handleDelete(item.MaintTypeID, 'maint-type')"
-                    class="text-red-600 hover:text-red-900"
-                  >
-                    刪除
-                  </button>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end gap-3">
+                  <button @click="openModal('maint-type', 'update', item)" class="text-blue-600 hover:text-blue-900">編輯</button>
+                  <button @click="handleDelete(item.MaintTypeID, 'maint-type')" class="text-red-600 hover:text-red-900">刪除</button>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <!-- Fault Reason Table -->
         <div v-if="activeTab === 'fault-reason'" class="overflow-x-auto">
           <table class="min-w-full divide-y divide-slate-200">
             <thead class="bg-slate-50">
@@ -492,26 +461,15 @@ const getTabLabel = (type: string) => {
                     {{ item.IsActive ? '啟用' : '停用' }}
                   </span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end gap-2">
-                  <button
-                    @click="openModal('fault-reason', 'update', item)"
-                    class="text-blue-600 hover:text-blue-900"
-                  >
-                    編輯
-                  </button>
-                  <button
-                    @click="handleDelete(item.ReasonID, 'fault-reason')"
-                    class="text-red-600 hover:text-red-900"
-                  >
-                    刪除
-                  </button>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end gap-3">
+                  <button @click="openModal('fault-reason', 'update', item)" class="text-blue-600 hover:text-blue-900">編輯</button>
+                  <button @click="handleDelete(item.ReasonID, 'fault-reason')" class="text-red-600 hover:text-red-900">刪除</button>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <!-- Action Table -->
         <div v-if="activeTab === 'action'" class="overflow-x-auto">
           <table class="min-w-full divide-y divide-slate-200">
             <thead class="bg-slate-50">
@@ -534,26 +492,15 @@ const getTabLabel = (type: string) => {
                     {{ item.IsActive ? '啟用' : '停用' }}
                   </span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end gap-2">
-                  <button
-                    @click="openModal('action', 'update', item)"
-                    class="text-blue-600 hover:text-blue-900"
-                  >
-                    編輯
-                  </button>
-                  <button
-                    @click="handleDelete(item.ActionID, 'action')"
-                    class="text-red-600 hover:text-red-900"
-                  >
-                    刪除
-                  </button>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end gap-3">
+                  <button @click="openModal('action', 'update', item)" class="text-blue-600 hover:text-blue-900">編輯</button>
+                  <button @click="handleDelete(item.ActionID, 'action')" class="text-red-600 hover:text-red-900">刪除</button>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <!-- Equipment Records Table -->
         <div v-if="activeTab === 'equipment'" class="overflow-x-auto">
           <table class="min-w-full divide-y divide-slate-200">
             <thead class="bg-slate-50">
@@ -579,19 +526,9 @@ const getTabLabel = (type: string) => {
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ item.MaintTypeName || '-' }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ item.FaultReasonName || '-' }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ item.ActionName || '-' }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end gap-2">
-                  <button
-                    @click="openModal('equipment', 'update', item)"
-                    class="text-blue-600 hover:text-blue-900"
-                  >
-                    編輯
-                  </button>
-                  <button
-                    @click="handleDelete(item.Id, 'equipment')"
-                    class="text-red-600 hover:text-red-900"
-                  >
-                    刪除
-                  </button>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end gap-3">
+                  <button @click="openModal('equipment', 'update', item)" class="text-blue-600 hover:text-blue-900">編輯</button>
+                  <button @click="handleDelete(item, 'equipment')" class="text-red-600 hover:text-red-900">刪除</button>
                 </td>
               </tr>
             </tbody>
@@ -600,372 +537,364 @@ const getTabLabel = (type: string) => {
       </div>
     </div>
 
-    <!-- Modal -->
     <div
       v-if="modal.visible"
-      class="fixed inset-0 z-50 overflow-y-auto"
-      aria-labelledby="modal-title"
+      class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-slate-900 bg-opacity-50"
       role="dialog"
       aria-modal="true"
     >
-      <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <div class="fixed inset-0 bg-slate-900 bg-opacity-50 transition-opacity" aria-hidden="true" @click="closeModal"></div>
-        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+      <div class="fixed inset-0" @click="closeModal"></div>
 
-        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
-          <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-            <h3 class="text-lg leading-6 font-medium text-slate-900 mb-4" id="modal-title">
-              {{ modal.mode === 'create' ? '新增' : '編輯' }} - {{ getTabLabel(modal.type) }}
-            </h3>
+      <div class="bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all w-full sm:max-w-2xl z-10 max-h-[90vh] flex flex-col">
+        <div class="bg-white px-6 py-4 border-b border-slate-200">
+          <h3 class="text-lg font-medium text-slate-900" id="modal-title">
+            {{ modal.mode === 'create' ? '新增' : '編輯' }} - {{ getTabLabel(modal.type) }}
+          </h3>
+        </div>
 
-            <div class="space-y-4">
-              <!-- Maintain Type Form -->
-              <div v-if="modal.type === 'maint-type'">
-                <div>
-                  <label class="block text-sm font-medium text-slate-700">名稱 *</label>
-                  <input
-                    v-model="form.maintTypeName"
-                    type="text"
-                    required
-                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                    placeholder="輸入維修物件名稱"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-slate-700">排序 (選填)</label>
-                  <input
-                    v-model="form.maintTypeSortOrder"
-                    type="number"
-                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                    placeholder="數字，數字越小越靠前"
-                  />
-                </div>
-                <div>
-                  <label class="flex items-center gap-2">
-                    <input
-                      v-model="form.maintTypeIsActive"
-                      type="checkbox"
-                      class="rounded text-blue-600 focus:ring-blue-500"
-                    />
-                    <span class="text-sm text-slate-700">啟用</span>
-                  </label>
-                </div>
+        <div class="bg-white px-6 py-4 overflow-y-auto flex-1 space-y-4 max-h-[65vh]">
+          
+          <div v-if="modal.type === 'maint-type'" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700">名稱 *</label>
+              <input
+                v-model="form.maintTypeName"
+                type="text"
+                required
+                class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                placeholder="輸入維修物件名稱"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700">排序 (選填)</label>
+              <input
+                v-model="form.maintTypeSortOrder"
+                type="number"
+                class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                placeholder="數字，數字越小越靠前"
+              />
+            </div>
+            <div>
+              <label class="flex items-center gap-2 mt-2">
+                <input
+                  v-model="form.maintTypeIsActive"
+                  type="checkbox"
+                  class="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
+                />
+                <span class="text-sm text-slate-700">啟用</span>
+              </label>
+            </div>
+          </div>
+
+          <div v-if="modal.type === 'fault-reason'" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700">名稱 *</label>
+              <input
+                v-model="form.faultReasonName"
+                type="text"
+                required
+                class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                placeholder="輸入故障原因名稱"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700">排序 (選填)</label>
+              <input
+                v-model="form.faultReasonSortOrder"
+                type="number"
+                class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                placeholder="數字，數字越小越靠前"
+              />
+            </div>
+            <div>
+              <label class="flex items-center gap-2 mt-2">
+                <input
+                  v-model="form.faultReasonIsActive"
+                  type="checkbox"
+                  class="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
+                />
+                <span class="text-sm text-slate-700">啟用</span>
+              </label>
+            </div>
+          </div>
+
+          <div v-if="modal.type === 'action'" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700">名稱 *</label>
+              <input
+                v-model="form.actionName"
+                type="text"
+                required
+                class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                placeholder="輸入處理方式名稱"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700">排序 (選填)</label>
+              <input
+                v-model="form.actionSortOrder"
+                type="number"
+                class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                placeholder="數字，數字越小越靠前"
+              />
+            </div>
+            <div>
+              <label class="flex items-center gap-2 mt-2">
+                <input
+                  v-model="form.actionIsActive"
+                  type="checkbox"
+                  class="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
+                />
+                <span class="text-sm text-slate-700">啟用</span>
+              </label>
+            </div>
+          </div>
+
+          <div v-if="modal.type === 'equipment'" class="space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-slate-700">物料編號 *</label>
+                <input
+                  v-model="form.materialNo"
+                  type="text"
+                  required
+                  class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                  placeholder="13位物料編號"
+                  maxlength="13"
+                />
               </div>
-
-              <!-- Fault Reason Form -->
-              <div v-if="modal.type === 'fault-reason'">
-                <div>
-                  <label class="block text-sm font-medium text-slate-700">名稱 *</label>
-                  <input
-                    v-model="form.faultReasonName"
-                    type="text"
-                    required
-                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                    placeholder="輸入故障原因名稱"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-slate-700">排序 (選填)</label>
-                  <input
-                    v-model="form.faultReasonSortOrder"
-                    type="number"
-                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                    placeholder="數字，數字越小越靠前"
-                  />
-                </div>
-                <div>
-                  <label class="flex items-center gap-2">
-                    <input
-                      v-model="form.faultReasonIsActive"
-                      type="checkbox"
-                      class="rounded text-blue-600 focus:ring-blue-500"
-                    />
-                    <span class="text-sm text-slate-700">啟用</span>
-                  </label>
-                </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700">序號 *</label>
+                <input
+                  v-model="form.serialNumber"
+                  type="text"
+                  required
+                  class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                  placeholder="50位內序號"
+                  maxlength="50"
+                />
               </div>
-
-              <!-- Action Form -->
-              <div v-if="modal.type === 'action'">
-                <div>
-                  <label class="block text-sm font-medium text-slate-700">名稱 *</label>
-                  <input
-                    v-model="form.actionName"
-                    type="text"
-                    required
-                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                    placeholder="輸入處理方式名稱"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-slate-700">排序 (選填)</label>
-                  <input
-                    v-model="form.actionSortOrder"
-                    type="number"
-                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                    placeholder="數字，數字越小越靠前"
-                  />
-                </div>
-                <div>
-                  <label class="flex items-center gap-2">
-                    <input
-                      v-model="form.actionIsActive"
-                      type="checkbox"
-                      class="rounded text-blue-600 focus:ring-blue-500"
-                    />
-                    <span class="text-sm text-slate-700">啟用</span>
-                  </label>
-                </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700">ID *</label>
+                <input
+                  v-model="form.id"
+                  type="number"
+                  required
+                  class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                />
               </div>
+            </div>
 
-              <!-- Equipment Form -->
-              <div v-if="modal.type === 'equipment'" class="space-y-4">
-                <div class="grid grid-cols-3 gap-4">
-                  <div>
-                    <label class="block text-sm font-medium text-slate-700">物料編號 *</label>
-                    <input
-                      v-model="form.materialNo"
-                      type="text"
-                      required
-                      class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                      placeholder="13位物料編號"
-                      maxlength="13"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-slate-700">序號 *</label>
-                    <input
-                      v-model="form.serialNumber"
-                      type="text"
-                      required
-                      class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                      placeholder="50位內序號"
-                      maxlength="50"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-slate-700">ID *</label>
-                    <input
-                      v-model="form.id"
-                      type="number"
-                      required
-                      class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                    />
-                  </div>
+            <div class="border-t border-slate-200 pt-4">
+              <h4 class="text-sm font-semibold text-slate-900 mb-3">基本資訊</h4>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-slate-700">系統代碼</label>
+                  <input
+                    v-model="form.systemCode"
+                    type="text"
+                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                    maxlength="5"
+                  />
                 </div>
-
-                <div class="border-t border-slate-200 pt-4">
-                  <h4 class="text-sm font-semibold text-slate-900 mb-3">基本資訊</h4>
-                  <div class="grid grid-cols-2 gap-4">
-                    <div>
-                      <label class="block text-sm font-medium text-slate-700">系統代碼</label>
-                      <input
-                        v-model="form.systemCode"
-                        type="text"
-                        class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                        maxlength="5"
-                      />
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-slate-700">負責人 ID</label>
-                      <input
-                        v-model="form.inChargeID"
-                        type="text"
-                        class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                        maxlength="6"
-                      />
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-slate-700">Purchase Date</label>
-                      <input
-                        v-model="form.purchaseDate"
-                        type="date"
-                        class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                      />
-                    </div>
-                  </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700">負責人 ID</label>
+                  <input
+                    v-model="form.inChargeID"
+                    type="text"
+                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                    maxlength="6"
+                  />
                 </div>
-
-                <div class="border-t border-slate-200 pt-4">
-                  <h4 class="text-sm font-semibold text-slate-900 mb-3">維修資訊</h4>
-                  <div class="grid grid-cols-2 gap-4">
-                    <div>
-                      <label class="block text-sm font-medium text-slate-700">維修物件類型代碼</label>
-                      <input
-                        v-model="form.maintTypeCode"
-                        type="text"
-                        class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                        placeholder="對應 MaintTypePhrases.MaintTypeID"
-                      />
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-slate-700">維修年份</label>
-                      <input
-                        v-model="form.maintTypeYear"
-                        type="text"
-                        class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                      />
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-slate-700">其他維修物件</label>
-                      <input
-                        v-model="form.maintTypeOther"
-                        type="text"
-                        class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                      />
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-slate-700">維修開始日期</label>
-                      <input
-                        v-model="form.maintStartDate"
-                        type="date"
-                        class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                      />
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-slate-700">維修結束日期</label>
-                      <input
-                        v-model="form.maintEndDate"
-                        type="date"
-                        class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                      />
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-slate-700">工單號碼</label>
-                      <input
-                        v-model="form.workOrderNumber"
-                        type="text"
-                        class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div class="border-t border-slate-200 pt-4">
-                  <h4 class="text-sm font-semibold text-slate-900 mb-3">安裝/拆除</h4>
-                  <div class="grid grid-cols-2 gap-4">
-                    <div>
-                      <label class="block text-sm font-medium text-slate-700">拆除日期</label>
-                      <input
-                        v-model="form.removalDate"
-                        type="date"
-                        class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                      />
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-slate-700">拆除地點</label>
-                      <input
-                        v-model="form.removalLocation"
-                        type="text"
-                        class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                      />
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-slate-700">安裝日期</label>
-                      <input
-                        v-model="form.installationDate"
-                        type="date"
-                        class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                      />
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-slate-700">安裝地點</label>
-                      <input
-                        v-model="form.installationLocation"
-                        type="text"
-                        class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div class="border-t border-slate-200 pt-4">
-                  <h4 class="text-sm font-semibold text-slate-900 mb-3">故障與處理</h4>
-                  <div class="grid grid-cols-2 gap-4">
-                    <div>
-                      <label class="block text-sm font-medium text-slate-700">故障原因代碼</label>
-                      <input
-                        v-model="form.faultReasonCode"
-                        type="text"
-                        class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                        placeholder="對應 FaultReasonPhrases.ReasonID"
-                      />
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-slate-700">其他故障原因</label>
-                      <input
-                        v-model="form.faultReasonOther"
-                        type="text"
-                        class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                      />
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-slate-700">處理方式代碼</label>
-                      <input
-                        v-model="form.actionCode"
-                        type="text"
-                        class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                        placeholder="對應 ActionPhrases.ActionID"
-                      />
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-slate-700">其他處理方式</label>
-                      <input
-                        v-model="form.actionOther"
-                        type="text"
-                        class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div class="border-t border-slate-200 pt-4">
-                  <div class="grid grid-cols-2 gap-4">
-                    <div>
-                      <label class="block text-sm font-medium text-slate-700">更換零件</label>
-                      <textarea
-                        v-model="form.replacementParts"
-                        rows="2"
-                        class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                      ></textarea>
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-slate-700">完成日期</label>
-                      <input
-                        v-model="form.completionDate"
-                        type="date"
-                        class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                      />
-                    </div>
-                  </div>
-                  <div class="mt-4">
-                    <label class="block text-sm font-medium text-slate-700">備註</label>
-                    <textarea
-                      v-model="form.remarks"
-                      rows="3"
-                      class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                    ></textarea>
-                  </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700">Purchase Date</label>
+                  <input
+                    v-model="form.purchaseDate"
+                    type="date"
+                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                  />
                 </div>
               </div>
             </div>
+
+            <div class="border-t border-slate-200 pt-4">
+              <h4 class="text-sm font-semibold text-slate-900 mb-3">維修資訊</h4>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-slate-700">維修物件類型代碼</label>
+                  <input
+                    v-model="form.maintTypeCode"
+                    type="text"
+                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                    placeholder="對應 MaintTypePhrases.MaintTypeID"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700">維修年份</label>
+                  <input
+                    v-model="form.maintTypeYear"
+                    type="text"
+                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700">其他維修物件</label>
+                  <input
+                    v-model="form.maintTypeOther"
+                    type="text"
+                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700">維修開始日期</label>
+                  <input
+                    v-model="form.maintStartDate"
+                    type="date"
+                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700">維修結束日期</label>
+                  <input
+                    v-model="form.maintEndDate"
+                    type="date"
+                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700">工單號碼</label>
+                  <input
+                    v-model="form.workOrderNumber"
+                    type="text"
+                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="border-t border-slate-200 pt-4">
+              <h4 class="text-sm font-semibold text-slate-900 mb-3">安裝/拆除</h4>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-slate-700">拆除日期</label>
+                  <input
+                    v-model="form.removalDate"
+                    type="date"
+                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700">拆除地點</label>
+                  <input
+                    v-model="form.removalLocation"
+                    type="text"
+                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700">安裝日期</label>
+                  <input
+                    v-model="form.installationDate"
+                    type="date"
+                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700">安裝地點</label>
+                  <input
+                    v-model="form.installationLocation"
+                    type="text"
+                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="border-t border-slate-200 pt-4">
+              <h4 class="text-sm font-semibold text-slate-900 mb-3">故障與處理</h4>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-slate-700">故障原因代碼</label>
+                  <input
+                    v-model="form.faultReasonCode"
+                    type="text"
+                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                    placeholder="對應 FaultReasonPhrases.ReasonID"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700">其他故障原因</label>
+                  <input
+                    v-model="form.faultReasonOther"
+                    type="text"
+                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700">處理方式代碼</label>
+                  <input
+                    v-model="form.actionCode"
+                    type="text"
+                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                    placeholder="對應 ActionPhrases.ActionID"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700">其他處理方式</label>
+                  <input
+                    v-model="form.actionOther"
+                    type="text"
+                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="border-t border-slate-200 pt-4 grid grid-cols-1 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-slate-700">更換零件</label>
+                <textarea
+                  v-model="form.replacementParts"
+                  rows="2"
+                  class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                ></textarea>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700">完成日期</label>
+                <input
+                  v-model="form.completionDate"
+                  type="date"
+                  class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700">備註</label>
+                <textarea
+                  v-model="form.remarks"
+                  rows="2"
+                  class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                ></textarea>
+              </div>
+            </div>
           </div>
-          <div class="bg-slate-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-            <button
-              type="button"
-              @click="handleSave"
-              class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm"
-            >
-              儲存
-            </button>
-            <button
-              type="button"
-              @click="closeModal"
-              class="mt-3 w-full inline-flex justify-center rounded-md border border-slate-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-slate-700 hover:bg-slate-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-            >
-              取消
-            </button>
-          </div>
+
+        </div>
+
+        <div class="bg-slate-50 px-6 py-3 border-t border-slate-200 flex justify-end gap-3">
+          <button
+            type="button"
+            @click="closeModal"
+            class="inline-flex justify-center rounded-md border border-slate-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-slate-700 hover:bg-slate-50 sm:text-sm transition-colors"
+          >
+            取消
+          </button>
+          <button
+            type="button"
+            @click="handleSave"
+            class="inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 sm:text-sm transition-colors"
+          >
+            儲存
+          </button>
         </div>
       </div>
     </div>

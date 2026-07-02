@@ -5,7 +5,10 @@
       "Read(//d/Source/recycleUseSystem/**)",
       "Bash(npm install *)",
       "Bash(uipro --help)",
-      "Bash(npx uipro *)"
+      "Bash(npx uipro *)",
+      "Bash(dir /b *.json *.md *.js *.vue *.ts *.yaml *.yml)",
+      "Bash(findstr /v \"node_modules\")",
+      "mcp__ide__getDiagnostics"
     ]
   }
 }

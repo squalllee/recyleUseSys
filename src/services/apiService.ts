@@ -1,5 +1,7 @@
+/// <reference types="vite/client" />
+
 // API 服務 - 用於與後端 API 通訊
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.VITE_API_URL || 'http://localhost:3000/api';
 
 // 通用 response 處理
 async function handleResponse<T>(response: Response): Promise<T> {

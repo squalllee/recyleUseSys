@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, onUnmounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useRouter } from 'vue-router'
 import { useRoute } from 'vue-router'
@@ -18,14 +18,28 @@ const isRotating = ref(false)
 const handleRefresh = () => {
   isRotating.value = true
   setTimeout(() => {
-    window.location.reload()
+    globalThis.location.reload()
   }, 500)
 }
 
 const handleLogout = () => {
-  auth.logout()
-  localStorage.removeItem('rememberedEmail')
-  router.push('/login')
+  try {
+    // 先清除所有相關資料
+    localStorage.removeItem('isLoggedIn')
+    localStorage.removeItem('userInfo')
+    localStorage.removeItem('rememberedEmail')
+
+    // 重置 Pinia store 的狀態
+    auth.isLoggedIn = false
+    auth.userInfo = null
+
+    // 使用 location.replace 避免使用者點擊後退按鈕回到受保護頁面
+    globalThis.location.replace('/login')
+  } catch (error) {
+    console.error('Logout error:', error)
+    // 出錯時也強制跳轉
+    globalThis.location.replace('/login')
+  }
 }
 </script>
 
@@ -38,7 +52,7 @@ const handleLogout = () => {
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <div class="flex items-center gap-2">
           <button
-            @click="() => window.location.reload()"
+            @click="handleRefresh"
             class="p-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-200"
             :title="'重新整理'"
           >
@@ -107,7 +121,7 @@ const handleLogout = () => {
 
       <!-- Content - Card style -->
       <main class="flex-1 min-w-0 bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
-        <slot />
+        <router-view />
       </main>
     </div>
   </div>
