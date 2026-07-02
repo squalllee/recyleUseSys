@@ -64,7 +64,7 @@ async function connectDB() {
   }
 }
 
-async function connectEmployeeDB() {
+async function connectWMSDB() {
   if (employeePool) {
     try {
       await employeePool.request().query('SELECT 1');
@@ -111,13 +111,15 @@ async function connectEmployeeDB() {
 
 // Export connectDB function for use in route files
 exports.connectDB = connectDB;
-exports.connectEmployeeDB = connectEmployeeDB;
+exports.connectWMSDB = connectWMSDB;
 
 // API Routes
 const apiRouter = require('./routes/api');
 const employeeRouter = require('./routes/employee');
+const materialRouter = require('./routes/materials');
 app.use('/api', apiRouter);
 app.use('/api/employee', employeeRouter);
+app.use('/api/materials', materialRouter);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -137,3 +139,4 @@ process.on('SIGTERM', async () => {
   }
   process.exit(0);
 });
+

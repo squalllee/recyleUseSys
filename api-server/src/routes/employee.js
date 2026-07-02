@@ -1,12 +1,20 @@
 const express = require('express');
 const router = express.Router();
-const { connectEmployeeDB } = require('../server');
+const { connectWMSDB } = require('../server');
 
-// Get all employees
+// Get all employees, optionally fuzzy-filtered by TMNAME or KEYNO via ?keyword=
 router.get('/employees', async (req, res) => {
   try {
-    const pool = await connectEmployeeDB();
-    const result = await pool.request().query(`
+    const pool = await connectWMSDB();
+    const request = pool.request();
+    const conditions = [`UNITNO LIKE 'L16%'`];
+
+    if (req.query.keyword) {
+      request.input('keyword', `%${req.query.keyword}%`);
+      conditions.push('(TMNAME LIKE @keyword OR KEYNO LIKE @keyword)');
+    }
+
+    const result = await request.query(`
       SELECT
         KEYNO,
         TMNAME,
@@ -18,7 +26,7 @@ router.get('/employees', async (req, res) => {
         CreatedTime,
         UpdatedTime
       FROM Employee
-      where UNITNO like 'L16%'
+      WHERE ${conditions.join(' AND ')}
       ORDER BY CreatedTime DESC
     `);
 
@@ -32,7 +40,7 @@ router.get('/employees', async (req, res) => {
 // Get employees by TMNAME
 router.get('/employees/tmname/:tmname', async (req, res) => {
   try {
-    const pool = await connectEmployeeDB();
+    const pool = await connectWMSDB();
     const result = await pool.request()
       .input('TMNAME', `%${req.params.tmname}%`)
       .query(`
@@ -58,10 +66,11 @@ router.get('/employees/tmname/:tmname', async (req, res) => {
   }
 });
 
+
 // Get employee by key no
 router.get('/employees/keyno/:keyno', async (req, res) => {
   try {
-    const pool = await connectEmployeeDB();
+    const pool = await connectWMSDB();
     const result = await pool.request()
       .input('KEYNO', req.params.keyno)
       .query(`

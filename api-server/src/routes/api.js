@@ -352,6 +352,27 @@ router.get('/equipment-maintenance-records', async (req, res) => {
   }
 });
 
+// Get the next SerialNumber to use for a given MaterialNo (numbering starts at 1 per MaterialNo)
+router.get('/equipment-maintenance-records/next-serial/:materialNo', async (req, res) => {
+  try {
+    const { materialNo } = req.params;
+    const pool = await connectDB();
+
+    const result = await pool.request()
+      .input('MaterialNo', mssql.VarChar(13), materialNo)
+      .query(`
+        SELECT ISNULL(MAX(TRY_CAST(SerialNumber AS INT)), 0) + 1 AS NextSerialNumber
+        FROM EquipmentMaintenanceRecords
+        WHERE MaterialNo = @MaterialNo
+      `);
+
+    res.json({ NextSerialNumber: result.recordset[0].NextSerialNumber });
+  } catch (error) {
+    console.error('Error computing next serial number:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get single EquipmentMaintenanceRecord
 router.get('/equipment-maintenance-records/:materialNo/:serialNumber/:id', async (req, res) => {
   try {

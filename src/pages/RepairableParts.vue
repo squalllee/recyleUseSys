@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import MaterialNoSelect from '../components/MaterialNoSelect.vue'
+import EmployeeSelect from '../components/EmployeeSelect.vue'
 import {
   getActionPhrases,
   getFaultReasonPhrases,
@@ -17,10 +19,12 @@ import {
   deleteFaultReasonPhrase,
   deleteMaintTypePhrase,
   deleteEquipmentMaintenanceRecord,
+  getNextSerialNumber,
   type ActionPhrase,
   type FaultReasonPhrase,
   type MaintTypePhrase,
   type EquipmentMaintenanceRecord,
+  type Material,
 } from '../services/apiService'
 
 const activeTab = ref<'maint-type' | 'fault-reason' | 'action' | 'equipment'>('equipment')
@@ -230,6 +234,20 @@ const resetForm = (type: string) => {
     form.value.replacementParts = ''
     form.value.completionDate = ''
     form.value.remarks = ''
+  }
+}
+
+// 選定物料編號後，帶入對應系統代碼，並自動帶入該物料編號下一個序號（每個物料編號從 1 開始編號）
+const onMaterialSelected = async (material: Material) => {
+  form.value.systemCode = material.系統代號 || ''
+
+  if (modal.value.mode !== 'create' || !form.value.materialNo) return
+
+  try {
+    const nextSerial = await getNextSerialNumber(form.value.materialNo)
+    form.value.serialNumber = String(nextSerial)
+  } catch (error) {
+    console.error('Failed to compute next serial number:', error)
   }
 }
 
@@ -654,28 +672,26 @@ const getTabLabel = (type: string) => {
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label class="block text-sm font-medium text-slate-700">物料編號 *</label>
-                <input
+                <MaterialNoSelect
                   v-model="form.materialNo"
-                  type="text"
-                  required
-                  class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                  placeholder="13位物料編號"
-                  maxlength="13"
+                  placeholder="輸入物料編號或名稱搜尋"
+                  :maxlength="13"
+                  @select="onMaterialSelected"
                 />
               </div>
               <div>
-                <label class="block text-sm font-medium text-slate-700">序號 *</label>
+                <label class="block text-sm font-medium text-slate-700">序號 * (自動帶入)</label>
                 <input
                   v-model="form.serialNumber"
                   type="text"
                   required
-                  class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                  placeholder="50位內序號"
-                  maxlength="50"
+                  readonly
+                  class="mt-1 block w-full rounded-md border-slate-300 shadow-sm bg-slate-50 text-slate-500 cursor-not-allowed sm:text-sm p-2 border"
+                  placeholder="選擇物料編號後自動帶入"
                 />
               </div>
               <div>
-                <label class="block text-sm font-medium text-slate-700">ID *</label>
+                <label class="block text-sm font-medium text-slate-700">設備序號 *</label>
                 <input
                   v-model="form.id"
                   type="number"
@@ -689,21 +705,22 @@ const getTabLabel = (type: string) => {
               <h4 class="text-sm font-semibold text-slate-900 mb-3">基本資訊</h4>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label class="block text-sm font-medium text-slate-700">系統代碼</label>
+                  <label class="block text-sm font-medium text-slate-700">系統代碼 (由物料編號帶入)</label>
                   <input
                     v-model="form.systemCode"
                     type="text"
-                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                    readonly
+                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm bg-slate-50 text-slate-500 cursor-not-allowed sm:text-sm p-2 border"
+                    placeholder="選擇物料編號後自動帶入"
                     maxlength="5"
                   />
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-slate-700">負責人 ID</label>
-                  <input
+                  <label class="block text-sm font-medium text-slate-700">檢修負責人</label>
+                  <EmployeeSelect
                     v-model="form.inChargeID"
-                    type="text"
-                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                    maxlength="6"
+                    placeholder="輸入姓名或員工編號搜尋"
+                    :maxlength="6"
                   />
                 </div>
                 <div>

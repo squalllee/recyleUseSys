@@ -126,10 +126,30 @@ export async function deleteMaintTypePhrase(id: number) {
   }
 }
 
+// Materials API
+export async function searchMaterials(keyword: string) {
+  const response = await fetch(`${API_BASE_URL}/materials?keyword=${encodeURIComponent(keyword)}`);
+  return handleResponse<Material[]>(response);
+}
+
+// Employee API
+export async function searchEmployees(keyword: string) {
+  const response = await fetch(`${API_BASE_URL}/employee/employees?keyword=${encodeURIComponent(keyword)}`);
+  return handleResponse<Employee[]>(response);
+}
+
 // EquipmentMaintenanceRecords API
 export async function getEquipmentMaintenanceRecords() {
   const response = await fetch(`${API_BASE_URL}/equipment-maintenance-records`);
   return handleResponse<EquipmentMaintenanceRecord[]>(response);
+}
+
+export async function getNextSerialNumber(materialNo: string) {
+  const response = await fetch(
+    `${API_BASE_URL}/equipment-maintenance-records/next-serial/${encodeURIComponent(materialNo)}`
+  );
+  const data = await handleResponse<{ NextSerialNumber: number }>(response);
+  return data.NextSerialNumber;
 }
 
 export async function getEquipmentMaintenanceRecord(
@@ -207,6 +227,28 @@ export interface MaintTypePhrase {
   TypeName: string;
   SortOrder: number | null;
   IsActive: boolean | null;
+}
+
+export interface Material {
+  物料編號: string;
+  物料名稱: string;
+  規格: string | null;
+  系統代號: string | null;
+  系統名稱: string | null;
+  子系統代號: string | null;
+  子系統名稱: string | null;
+}
+
+export interface Employee {
+  KEYNO: string;
+  TMNAME: string;
+  EMAIL: string | null;
+  TelExtension: string | null;
+  UNITNO: string | null;
+  JOBName: string | null;
+  OFFJOBDATE: string | null;
+  CreatedTime: string | null;
+  UpdatedTime: string | null;
 }
 
 export interface EquipmentMaintenanceRecord {
