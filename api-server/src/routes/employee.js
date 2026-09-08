@@ -7,7 +7,7 @@ router.get('/employees', async (req, res) => {
   try {
     const pool = await connectWMSDB();
     const request = pool.request();
-    const conditions = [`UNITNO LIKE 'L16%'`];
+    const conditions = [`UNITNO LIKE 'L%'`];
 
     if (req.query.keyword) {
       request.input('keyword', `%${req.query.keyword}%`);

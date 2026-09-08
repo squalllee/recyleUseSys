@@ -10,8 +10,11 @@ export interface LoginResult {
   user_info: LoginUserInfo | null
 }
 
+const LOGIN_URL = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.VITE_LOGIN_URL
+  || 'http://localhost/lowPricePurSer/loginService/login'
+
 export async function loginService(username: string, password: string): Promise<LoginResult> {
-  const response = await fetch('http://localhost/lowPricePurSer/loginService/login', {
+  const response = await fetch(LOGIN_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),

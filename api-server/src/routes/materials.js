@@ -3,7 +3,8 @@ const router = express.Router();
 const mssql = require('mssql');
 const { connectWMSDB } = require('../server');
 
-// Get material basic data with optional fuzzy search by MaterialNo / MaterialName
+// Get material basic data with optional fuzzy search by MaterialNo / MaterialName.
+// The result is intentionally kept compatible with MaterialNoSelect.vue.
 router.get('/', async (req, res) => {
   try {
     const pool = await connectWMSDB();

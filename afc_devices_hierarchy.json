@@ -1,0 +1,1300 @@
+{
+    "FormatVersion":  1,
+    "SourceFile":  "afc_deployment_data (1).xml",
+    "Rules":  {
+                  "Station":  "Station is split into DeviceID and DeviceName; it is the root node.",
+                  "Device":  "DeviceID is Station DeviceID plus source DeviceID; CurrentLocationDeviceID is the station DeviceID.",
+                  "Part":  "DeviceID is PartNumber plus an underscore and a per-PartNumber four-digit sequence.",
+                  "Hierarchy":  "L1 is under Device, L2 is under L1, and L3 is under L2."
+              },
+    "Counts":  {
+                   "Stations":  2,
+                   "Devices":  19,
+                   "Parts":  80,
+                   "TotalNodes":  101
+               },
+    "Validation":  {
+                       "DuplicateDeviceIDsAcrossStations":  [
+                                                                {
+                                                                    "DeviceID":  "3101",
+                                                                    "Stations":  [
+                                                                                     "G0",
+                                                                                     "G3"
+                                                                                 ]
+                                                                },
+                                                                {
+                                                                    "DeviceID":  "3103",
+                                                                    "Stations":  [
+                                                                                     "G0",
+                                                                                     "G3"
+                                                                                 ]
+                                                                },
+                                                                {
+                                                                    "DeviceID":  "3104",
+                                                                    "Stations":  [
+                                                                                     "G0",
+                                                                                     "G3"
+                                                                                 ]
+                                                                }
+                                                            ]
+                   },
+    "Stations":  [
+                     {
+                         "DeviceID":  "G0",
+                         "DeviceName":  "北屯總站",
+                         "MaterialNo":  "",
+                         "SerialNumber":  "",
+                         "CurrentLocationDeviceID":  "",
+                         "Level":  "Station",
+                         "Status":  "",
+                         "SourceRow":  0,
+                         "Children":  [
+                                          {
+                                              "DeviceID":  "G03101",
+                                              "DeviceName":  "H.AG 自動閘門(無障礙)",
+                                              "MaterialNo":  "",
+                                              "SerialNumber":  "N/A",
+                                              "CurrentLocationDeviceID":  "G0",
+                                              "Level":  "Device",
+                                              "Status":  "Normal",
+                                              "SourceRow":  2,
+                                              "Children":  [
+                                                               {
+                                                                   "DeviceID":  "M0.AG.0001.IB_0001",
+                                                                   "DeviceName":  "電子控制單元 (ECU)",
+                                                                   "MaterialNo":  "M0.AG.0001.IB",
+                                                                   "SerialNumber":  "ECU-2023-A001",
+                                                                   "CurrentLocationDeviceID":  "G03101",
+                                                                   "Level":  "L1",
+                                                                   "Status":  "Normal",
+                                                                   "SourceRow":  3,
+                                                                   "Children":  [
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0002.IB_0001",
+                                                                                        "DeviceName":  "CPU模組 (ET860)",
+                                                                                        "MaterialNo":  "M0.AG.0002.IB",
+                                                                                        "SerialNumber":  "CPU-SN-8821",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0001.IB_0001",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Normal",
+                                                                                        "SourceRow":  4,
+                                                                                        "Children":  [
+
+                                                                                                     ]
+                                                                                    },
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0004.IN_0001",
+                                                                                        "DeviceName":  "SSD硬碟 (64GB)",
+                                                                                        "MaterialNo":  "M0.AG.0004.IN",
+                                                                                        "SerialNumber":  "SSD-KING-099",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0001.IB_0001",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Normal",
+                                                                                        "SourceRow":  5,
+                                                                                        "Children":  [
+
+                                                                                                     ]
+                                                                                    }
+                                                                                ]
+                                                               },
+                                                               {
+                                                                   "DeviceID":  "M0.AG.0010.TPU_0001",
+                                                                   "DeviceName":  "票卡處理機構",
+                                                                   "MaterialNo":  "M0.AG.0010.TPU",
+                                                                   "SerialNumber":  "TPU-2023-B055",
+                                                                   "CurrentLocationDeviceID":  "G03101",
+                                                                   "Level":  "L1",
+                                                                   "Status":  "Warning",
+                                                                   "SourceRow":  6,
+                                                                   "Children":  [
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0013.ST_0001",
+                                                                                        "DeviceName":  "單程票回收模組",
+                                                                                        "MaterialNo":  "M0.AG.0013.ST",
+                                                                                        "SerialNumber":  "RCM-2022-X11",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0010.TPU_0001",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Warning",
+                                                                                        "SourceRow":  7,
+                                                                                        "Children":  [
+
+                                                                                                     ]
+                                                                                    }
+                                                                                ]
+                                                               }
+                                                           ]
+                                          },
+                                          {
+                                              "DeviceID":  "G01102",
+                                              "DeviceName":  "AG 自動閘門",
+                                              "MaterialNo":  "",
+                                              "SerialNumber":  "N/A",
+                                              "CurrentLocationDeviceID":  "G0",
+                                              "Level":  "Device",
+                                              "Status":  "Normal",
+                                              "SourceRow":  8,
+                                              "Children":  [
+                                                               {
+                                                                   "DeviceID":  "M0.AG.0010.TPU_0002",
+                                                                   "DeviceName":  "票卡處理機構",
+                                                                   "MaterialNo":  "M0.AG.0010.TPU",
+                                                                   "SerialNumber":  "TPU-2023-B056",
+                                                                   "CurrentLocationDeviceID":  "G01102",
+                                                                   "Level":  "L1",
+                                                                   "Status":  "Warning",
+                                                                   "SourceRow":  9,
+                                                                   "Children":  [
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0013.ST_0002",
+                                                                                        "DeviceName":  "單程票回收模組",
+                                                                                        "MaterialNo":  "M0.AG.0013.ST",
+                                                                                        "SerialNumber":  "RCM-2022-X12",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0010.TPU_0002",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Warning",
+                                                                                        "SourceRow":  10,
+                                                                                        "Children":  [
+                                                                                                         {
+                                                                                                             "DeviceID":  "M0.AG.0013.Motor_0001",
+                                                                                                             "DeviceName":  "步進馬達",
+                                                                                                             "MaterialNo":  "M0.AG.0013.Motor",
+                                                                                                             "SerialNumber":  "MTR-STEP-774",
+                                                                                                             "CurrentLocationDeviceID":  "M0.AG.0013.ST_0002",
+                                                                                                             "Level":  "L3",
+                                                                                                             "Status":  "Normal",
+                                                                                                             "SourceRow":  11,
+                                                                                                             "Children":  [
+
+                                                                                                                          ]
+                                                                                                         }
+                                                                                                     ]
+                                                                                    }
+                                                                                ]
+                                                               },
+                                                               {
+                                                                   "DeviceID":  "M0.AG.0001.IB_0002",
+                                                                   "DeviceName":  "電子控制單元 (ECU)",
+                                                                   "MaterialNo":  "M0.AG.0001.IB",
+                                                                   "SerialNumber":  "ECU-2023-A002",
+                                                                   "CurrentLocationDeviceID":  "G01102",
+                                                                   "Level":  "L1",
+                                                                   "Status":  "Normal",
+                                                                   "SourceRow":  12,
+                                                                   "Children":  [
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0002.IB_0002",
+                                                                                        "DeviceName":  "CPU模組 (ET860)",
+                                                                                        "MaterialNo":  "M0.AG.0002.IB",
+                                                                                        "SerialNumber":  "CPU-SN-8822",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0001.IB_0002",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Normal",
+                                                                                        "SourceRow":  13,
+                                                                                        "Children":  [
+
+                                                                                                     ]
+                                                                                    },
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0004.IN_0002",
+                                                                                        "DeviceName":  "SSD硬碟 (64GB)",
+                                                                                        "MaterialNo":  "M0.AG.0004.IN",
+                                                                                        "SerialNumber":  "SSD-KING-100",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0001.IB_0002",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Normal",
+                                                                                        "SourceRow":  14,
+                                                                                        "Children":  [
+
+                                                                                                     ]
+                                                                                    }
+                                                                                ]
+                                                               }
+                                                           ]
+                                          },
+                                          {
+                                              "DeviceID":  "G03103",
+                                              "DeviceName":  "AG 自動閘門",
+                                              "MaterialNo":  "",
+                                              "SerialNumber":  "AGKB24010001",
+                                              "CurrentLocationDeviceID":  "G0",
+                                              "Level":  "Device",
+                                              "Status":  "Normal",
+                                              "SourceRow":  15,
+                                              "Children":  [
+                                                               {
+                                                                   "DeviceID":  "M0.AG.0010.TPU_0003",
+                                                                   "DeviceName":  "票卡處理機構",
+                                                                   "MaterialNo":  "M0.AG.0010.TPU",
+                                                                   "SerialNumber":  "TPU-2023-B057",
+                                                                   "CurrentLocationDeviceID":  "G03103",
+                                                                   "Level":  "L1",
+                                                                   "Status":  "Warning",
+                                                                   "SourceRow":  16,
+                                                                   "Children":  [
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0013.ST_0003",
+                                                                                        "DeviceName":  "單程票回收模組",
+                                                                                        "MaterialNo":  "M0.AG.0013.ST",
+                                                                                        "SerialNumber":  "RCM-2022-X13",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0010.TPU_0003",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Warning",
+                                                                                        "SourceRow":  17,
+                                                                                        "Children":  [
+                                                                                                         {
+                                                                                                             "DeviceID":  "M0.AG.0013.Motor_0002",
+                                                                                                             "DeviceName":  "步進馬達",
+                                                                                                             "MaterialNo":  "M0.AG.0013.Motor",
+                                                                                                             "SerialNumber":  "MTR-STEP-775",
+                                                                                                             "CurrentLocationDeviceID":  "M0.AG.0013.ST_0003",
+                                                                                                             "Level":  "L3",
+                                                                                                             "Status":  "Normal",
+                                                                                                             "SourceRow":  18,
+                                                                                                             "Children":  [
+
+                                                                                                                          ]
+                                                                                                         }
+                                                                                                     ]
+                                                                                    }
+                                                                                ]
+                                                               },
+                                                               {
+                                                                   "DeviceID":  "M0.AG.0001.IB_0003",
+                                                                   "DeviceName":  "電子控制單元 (ECU)",
+                                                                   "MaterialNo":  "M0.AG.0001.IB",
+                                                                   "SerialNumber":  "ECU-2023-A003",
+                                                                   "CurrentLocationDeviceID":  "G03103",
+                                                                   "Level":  "L1",
+                                                                   "Status":  "Normal",
+                                                                   "SourceRow":  19,
+                                                                   "Children":  [
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0002.IB_0003",
+                                                                                        "DeviceName":  "CPU模組 (ET860)",
+                                                                                        "MaterialNo":  "M0.AG.0002.IB",
+                                                                                        "SerialNumber":  "CPU-SN-8823",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0001.IB_0003",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Normal",
+                                                                                        "SourceRow":  20,
+                                                                                        "Children":  [
+
+                                                                                                     ]
+                                                                                    },
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0004.IN_0003",
+                                                                                        "DeviceName":  "SSD硬碟 (64GB)",
+                                                                                        "MaterialNo":  "M0.AG.0004.IN",
+                                                                                        "SerialNumber":  "SSD-KING-101",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0001.IB_0003",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Normal",
+                                                                                        "SourceRow":  21,
+                                                                                        "Children":  [
+
+                                                                                                     ]
+                                                                                    }
+                                                                                ]
+                                                               }
+                                                           ]
+                                          },
+                                          {
+                                              "DeviceID":  "G03104",
+                                              "DeviceName":  "AG 自動閘門",
+                                              "MaterialNo":  "",
+                                              "SerialNumber":  "AGKB24010001",
+                                              "CurrentLocationDeviceID":  "G0",
+                                              "Level":  "Device",
+                                              "Status":  "Normal",
+                                              "SourceRow":  22,
+                                              "Children":  [
+                                                               {
+                                                                   "DeviceID":  "M0.AG.0010.TPU_0004",
+                                                                   "DeviceName":  "票卡處理機構",
+                                                                   "MaterialNo":  "M0.AG.0010.TPU",
+                                                                   "SerialNumber":  "TPU-2023-B058",
+                                                                   "CurrentLocationDeviceID":  "G03104",
+                                                                   "Level":  "L1",
+                                                                   "Status":  "Warning",
+                                                                   "SourceRow":  23,
+                                                                   "Children":  [
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0013.ST_0004",
+                                                                                        "DeviceName":  "單程票回收模組",
+                                                                                        "MaterialNo":  "M0.AG.0013.ST",
+                                                                                        "SerialNumber":  "RCM-2022-X14",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0010.TPU_0004",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Warning",
+                                                                                        "SourceRow":  24,
+                                                                                        "Children":  [
+                                                                                                         {
+                                                                                                             "DeviceID":  "M0.AG.0013.Motor_0003",
+                                                                                                             "DeviceName":  "步進馬達",
+                                                                                                             "MaterialNo":  "M0.AG.0013.Motor",
+                                                                                                             "SerialNumber":  "MTR-STEP-776",
+                                                                                                             "CurrentLocationDeviceID":  "M0.AG.0013.ST_0004",
+                                                                                                             "Level":  "L3",
+                                                                                                             "Status":  "Normal",
+                                                                                                             "SourceRow":  25,
+                                                                                                             "Children":  [
+
+                                                                                                                          ]
+                                                                                                         }
+                                                                                                     ]
+                                                                                    }
+                                                                                ]
+                                                               },
+                                                               {
+                                                                   "DeviceID":  "M0.AG.0001.IB_0004",
+                                                                   "DeviceName":  "電子控制單元 (ECU)",
+                                                                   "MaterialNo":  "M0.AG.0001.IB",
+                                                                   "SerialNumber":  "ECU-2023-A004",
+                                                                   "CurrentLocationDeviceID":  "G03104",
+                                                                   "Level":  "L1",
+                                                                   "Status":  "Normal",
+                                                                   "SourceRow":  26,
+                                                                   "Children":  [
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0002.IB_0004",
+                                                                                        "DeviceName":  "CPU模組 (ET860)",
+                                                                                        "MaterialNo":  "M0.AG.0002.IB",
+                                                                                        "SerialNumber":  "CPU-SN-8824",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0001.IB_0004",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Normal",
+                                                                                        "SourceRow":  27,
+                                                                                        "Children":  [
+
+                                                                                                     ]
+                                                                                    },
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0004.IN_0004",
+                                                                                        "DeviceName":  "SSD硬碟 (64GB)",
+                                                                                        "MaterialNo":  "M0.AG.0004.IN",
+                                                                                        "SerialNumber":  "SSD-KING-102",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0001.IB_0004",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Normal",
+                                                                                        "SourceRow":  28,
+                                                                                        "Children":  [
+
+                                                                                                     ]
+                                                                                    }
+                                                                                ]
+                                                               }
+                                                           ]
+                                          },
+                                          {
+                                              "DeviceID":  "G03205",
+                                              "DeviceName":  "AG 自動閘門",
+                                              "MaterialNo":  "",
+                                              "SerialNumber":  "AGKB24010001",
+                                              "CurrentLocationDeviceID":  "G0",
+                                              "Level":  "Device",
+                                              "Status":  "Normal",
+                                              "SourceRow":  29,
+                                              "Children":  [
+                                                               {
+                                                                   "DeviceID":  "M0.AG.0010.TPU_0005",
+                                                                   "DeviceName":  "票卡處理機構",
+                                                                   "MaterialNo":  "M0.AG.0010.TPU",
+                                                                   "SerialNumber":  "TPU-2023-B059",
+                                                                   "CurrentLocationDeviceID":  "G03205",
+                                                                   "Level":  "L1",
+                                                                   "Status":  "Warning",
+                                                                   "SourceRow":  30,
+                                                                   "Children":  [
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0013.ST_0005",
+                                                                                        "DeviceName":  "單程票回收模組",
+                                                                                        "MaterialNo":  "M0.AG.0013.ST",
+                                                                                        "SerialNumber":  "RCM-2022-X15",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0010.TPU_0005",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Warning",
+                                                                                        "SourceRow":  31,
+                                                                                        "Children":  [
+                                                                                                         {
+                                                                                                             "DeviceID":  "M0.AG.0013.Motor_0004",
+                                                                                                             "DeviceName":  "步進馬達",
+                                                                                                             "MaterialNo":  "M0.AG.0013.Motor",
+                                                                                                             "SerialNumber":  "MTR-STEP-777",
+                                                                                                             "CurrentLocationDeviceID":  "M0.AG.0013.ST_0005",
+                                                                                                             "Level":  "L3",
+                                                                                                             "Status":  "Normal",
+                                                                                                             "SourceRow":  32,
+                                                                                                             "Children":  [
+
+                                                                                                                          ]
+                                                                                                         }
+                                                                                                     ]
+                                                                                    }
+                                                                                ]
+                                                               },
+                                                               {
+                                                                   "DeviceID":  "M0.AG.0001.IB_0005",
+                                                                   "DeviceName":  "電子控制單元 (ECU)",
+                                                                   "MaterialNo":  "M0.AG.0001.IB",
+                                                                   "SerialNumber":  "ECU-2023-A005",
+                                                                   "CurrentLocationDeviceID":  "G03205",
+                                                                   "Level":  "L1",
+                                                                   "Status":  "Normal",
+                                                                   "SourceRow":  33,
+                                                                   "Children":  [
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0002.IB_0005",
+                                                                                        "DeviceName":  "CPU模組 (ET860)",
+                                                                                        "MaterialNo":  "M0.AG.0002.IB",
+                                                                                        "SerialNumber":  "CPU-SN-8825",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0001.IB_0005",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Normal",
+                                                                                        "SourceRow":  34,
+                                                                                        "Children":  [
+
+                                                                                                     ]
+                                                                                    },
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0004.IN_0005",
+                                                                                        "DeviceName":  "SSD硬碟 (64GB)",
+                                                                                        "MaterialNo":  "M0.AG.0004.IN",
+                                                                                        "SerialNumber":  "SSD-KING-103",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0001.IB_0005",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Normal",
+                                                                                        "SourceRow":  35,
+                                                                                        "Children":  [
+
+                                                                                                     ]
+                                                                                    }
+                                                                                ]
+                                                               }
+                                                           ]
+                                          },
+                                          {
+                                              "DeviceID":  "G03206",
+                                              "DeviceName":  "AG 自動閘門",
+                                              "MaterialNo":  "",
+                                              "SerialNumber":  "AGKB24010001",
+                                              "CurrentLocationDeviceID":  "G0",
+                                              "Level":  "Device",
+                                              "Status":  "Normal",
+                                              "SourceRow":  36,
+                                              "Children":  [
+                                                               {
+                                                                   "DeviceID":  "M0.AG.0010.TPU_0006",
+                                                                   "DeviceName":  "票卡處理機構",
+                                                                   "MaterialNo":  "M0.AG.0010.TPU",
+                                                                   "SerialNumber":  "TPU-2023-B060",
+                                                                   "CurrentLocationDeviceID":  "G03206",
+                                                                   "Level":  "L1",
+                                                                   "Status":  "Warning",
+                                                                   "SourceRow":  37,
+                                                                   "Children":  [
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0013.ST_0006",
+                                                                                        "DeviceName":  "單程票回收模組",
+                                                                                        "MaterialNo":  "M0.AG.0013.ST",
+                                                                                        "SerialNumber":  "RCM-2022-X16",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0010.TPU_0006",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Warning",
+                                                                                        "SourceRow":  38,
+                                                                                        "Children":  [
+                                                                                                         {
+                                                                                                             "DeviceID":  "M0.AG.0013.Motor_0005",
+                                                                                                             "DeviceName":  "步進馬達",
+                                                                                                             "MaterialNo":  "M0.AG.0013.Motor",
+                                                                                                             "SerialNumber":  "MTR-STEP-778",
+                                                                                                             "CurrentLocationDeviceID":  "M0.AG.0013.ST_0006",
+                                                                                                             "Level":  "L3",
+                                                                                                             "Status":  "Normal",
+                                                                                                             "SourceRow":  39,
+                                                                                                             "Children":  [
+
+                                                                                                                          ]
+                                                                                                         }
+                                                                                                     ]
+                                                                                    }
+                                                                                ]
+                                                               },
+                                                               {
+                                                                   "DeviceID":  "M0.AG.0001.IB_0006",
+                                                                   "DeviceName":  "電子控制單元 (ECU)",
+                                                                   "MaterialNo":  "M0.AG.0001.IB",
+                                                                   "SerialNumber":  "ECU-2023-A006",
+                                                                   "CurrentLocationDeviceID":  "G03206",
+                                                                   "Level":  "L1",
+                                                                   "Status":  "Normal",
+                                                                   "SourceRow":  40,
+                                                                   "Children":  [
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0002.IB_0006",
+                                                                                        "DeviceName":  "CPU模組 (ET860)",
+                                                                                        "MaterialNo":  "M0.AG.0002.IB",
+                                                                                        "SerialNumber":  "CPU-SN-8826",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0001.IB_0006",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Normal",
+                                                                                        "SourceRow":  41,
+                                                                                        "Children":  [
+
+                                                                                                     ]
+                                                                                    },
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0004.IN_0006",
+                                                                                        "DeviceName":  "SSD硬碟 (64GB)",
+                                                                                        "MaterialNo":  "M0.AG.0004.IN",
+                                                                                        "SerialNumber":  "SSD-KING-104",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0001.IB_0006",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Normal",
+                                                                                        "SourceRow":  42,
+                                                                                        "Children":  [
+
+                                                                                                     ]
+                                                                                    }
+                                                                                ]
+                                                               }
+                                                           ]
+                                          },
+                                          {
+                                              "DeviceID":  "G03207",
+                                              "DeviceName":  "AG 自動閘門",
+                                              "MaterialNo":  "",
+                                              "SerialNumber":  "AGKB24010001",
+                                              "CurrentLocationDeviceID":  "G0",
+                                              "Level":  "Device",
+                                              "Status":  "Normal",
+                                              "SourceRow":  43,
+                                              "Children":  [
+                                                               {
+                                                                   "DeviceID":  "M0.AG.0010.TPU_0007",
+                                                                   "DeviceName":  "票卡處理機構",
+                                                                   "MaterialNo":  "M0.AG.0010.TPU",
+                                                                   "SerialNumber":  "TPU-2023-B061",
+                                                                   "CurrentLocationDeviceID":  "G03207",
+                                                                   "Level":  "L1",
+                                                                   "Status":  "Warning",
+                                                                   "SourceRow":  44,
+                                                                   "Children":  [
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0013.ST_0007",
+                                                                                        "DeviceName":  "單程票回收模組",
+                                                                                        "MaterialNo":  "M0.AG.0013.ST",
+                                                                                        "SerialNumber":  "RCM-2022-X17",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0010.TPU_0007",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Warning",
+                                                                                        "SourceRow":  45,
+                                                                                        "Children":  [
+                                                                                                         {
+                                                                                                             "DeviceID":  "M0.AG.0013.Motor_0006",
+                                                                                                             "DeviceName":  "步進馬達",
+                                                                                                             "MaterialNo":  "M0.AG.0013.Motor",
+                                                                                                             "SerialNumber":  "MTR-STEP-779",
+                                                                                                             "CurrentLocationDeviceID":  "M0.AG.0013.ST_0007",
+                                                                                                             "Level":  "L3",
+                                                                                                             "Status":  "Normal",
+                                                                                                             "SourceRow":  46,
+                                                                                                             "Children":  [
+
+                                                                                                                          ]
+                                                                                                         }
+                                                                                                     ]
+                                                                                    }
+                                                                                ]
+                                                               },
+                                                               {
+                                                                   "DeviceID":  "M0.AG.0001.IB_0007",
+                                                                   "DeviceName":  "電子控制單元 (ECU)",
+                                                                   "MaterialNo":  "M0.AG.0001.IB",
+                                                                   "SerialNumber":  "ECU-2023-A007",
+                                                                   "CurrentLocationDeviceID":  "G03207",
+                                                                   "Level":  "L1",
+                                                                   "Status":  "Normal",
+                                                                   "SourceRow":  47,
+                                                                   "Children":  [
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0002.IB_0007",
+                                                                                        "DeviceName":  "CPU模組 (ET860)",
+                                                                                        "MaterialNo":  "M0.AG.0002.IB",
+                                                                                        "SerialNumber":  "CPU-SN-8827",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0001.IB_0007",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Normal",
+                                                                                        "SourceRow":  48,
+                                                                                        "Children":  [
+
+                                                                                                     ]
+                                                                                    },
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0004.IN_0007",
+                                                                                        "DeviceName":  "SSD硬碟 (64GB)",
+                                                                                        "MaterialNo":  "M0.AG.0004.IN",
+                                                                                        "SerialNumber":  "SSD-KING-105",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0001.IB_0007",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Normal",
+                                                                                        "SourceRow":  49,
+                                                                                        "Children":  [
+
+                                                                                                     ]
+                                                                                    }
+                                                                                ]
+                                                               }
+                                                           ]
+                                          },
+                                          {
+                                              "DeviceID":  "G03208",
+                                              "DeviceName":  "H.AG 自動閘門(無障礙)",
+                                              "MaterialNo":  "",
+                                              "SerialNumber":  "AGKB24010001",
+                                              "CurrentLocationDeviceID":  "G0",
+                                              "Level":  "Device",
+                                              "Status":  "Normal",
+                                              "SourceRow":  50,
+                                              "Children":  [
+                                                               {
+                                                                   "DeviceID":  "M0.AG.0010.TPU_0008",
+                                                                   "DeviceName":  "票卡處理機構",
+                                                                   "MaterialNo":  "M0.AG.0010.TPU",
+                                                                   "SerialNumber":  "TPU-2023-B062",
+                                                                   "CurrentLocationDeviceID":  "G03208",
+                                                                   "Level":  "L1",
+                                                                   "Status":  "Warning",
+                                                                   "SourceRow":  51,
+                                                                   "Children":  [
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0013.ST_0008",
+                                                                                        "DeviceName":  "單程票回收模組",
+                                                                                        "MaterialNo":  "M0.AG.0013.ST",
+                                                                                        "SerialNumber":  "RCM-2022-X18",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0010.TPU_0008",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Warning",
+                                                                                        "SourceRow":  52,
+                                                                                        "Children":  [
+                                                                                                         {
+                                                                                                             "DeviceID":  "M0.AG.0013.Motor_0007",
+                                                                                                             "DeviceName":  "步進馬達",
+                                                                                                             "MaterialNo":  "M0.AG.0013.Motor",
+                                                                                                             "SerialNumber":  "MTR-STEP-780",
+                                                                                                             "CurrentLocationDeviceID":  "M0.AG.0013.ST_0008",
+                                                                                                             "Level":  "L3",
+                                                                                                             "Status":  "Normal",
+                                                                                                             "SourceRow":  53,
+                                                                                                             "Children":  [
+
+                                                                                                                          ]
+                                                                                                         }
+                                                                                                     ]
+                                                                                    }
+                                                                                ]
+                                                               },
+                                                               {
+                                                                   "DeviceID":  "M0.AG.0001.IB_0008",
+                                                                   "DeviceName":  "電子控制單元 (ECU)",
+                                                                   "MaterialNo":  "M0.AG.0001.IB",
+                                                                   "SerialNumber":  "ECU-2023-A008",
+                                                                   "CurrentLocationDeviceID":  "G03208",
+                                                                   "Level":  "L1",
+                                                                   "Status":  "Normal",
+                                                                   "SourceRow":  54,
+                                                                   "Children":  [
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0002.IB_0008",
+                                                                                        "DeviceName":  "CPU模組 (ET860)",
+                                                                                        "MaterialNo":  "M0.AG.0002.IB",
+                                                                                        "SerialNumber":  "CPU-SN-8828",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0001.IB_0008",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Normal",
+                                                                                        "SourceRow":  55,
+                                                                                        "Children":  [
+
+                                                                                                     ]
+                                                                                    },
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0004.IN_0008",
+                                                                                        "DeviceName":  "SSD硬碟 (64GB)",
+                                                                                        "MaterialNo":  "M0.AG.0004.IN",
+                                                                                        "SerialNumber":  "SSD-KING-106",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0001.IB_0008",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Normal",
+                                                                                        "SourceRow":  56,
+                                                                                        "Children":  [
+
+                                                                                                     ]
+                                                                                    }
+                                                                                ]
+                                                               }
+                                                           ]
+                                          },
+                                          {
+                                              "DeviceID":  "G03309",
+                                              "DeviceName":  "H.AG 自動閘門(無障礙)",
+                                              "MaterialNo":  "",
+                                              "SerialNumber":  "AGKB24010001",
+                                              "CurrentLocationDeviceID":  "G0",
+                                              "Level":  "Device",
+                                              "Status":  "Normal",
+                                              "SourceRow":  57,
+                                              "Children":  [
+                                                               {
+                                                                   "DeviceID":  "M0.AG.0010.TPU_0009",
+                                                                   "DeviceName":  "票卡處理機構",
+                                                                   "MaterialNo":  "M0.AG.0010.TPU",
+                                                                   "SerialNumber":  "TPU-2023-B063",
+                                                                   "CurrentLocationDeviceID":  "G03309",
+                                                                   "Level":  "L1",
+                                                                   "Status":  "Warning",
+                                                                   "SourceRow":  58,
+                                                                   "Children":  [
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0013.ST_0009",
+                                                                                        "DeviceName":  "單程票回收模組",
+                                                                                        "MaterialNo":  "M0.AG.0013.ST",
+                                                                                        "SerialNumber":  "RCM-2022-X19",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0010.TPU_0009",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Warning",
+                                                                                        "SourceRow":  59,
+                                                                                        "Children":  [
+                                                                                                         {
+                                                                                                             "DeviceID":  "M0.AG.0013.Motor_0008",
+                                                                                                             "DeviceName":  "步進馬達",
+                                                                                                             "MaterialNo":  "M0.AG.0013.Motor",
+                                                                                                             "SerialNumber":  "MTR-STEP-781",
+                                                                                                             "CurrentLocationDeviceID":  "M0.AG.0013.ST_0009",
+                                                                                                             "Level":  "L3",
+                                                                                                             "Status":  "Normal",
+                                                                                                             "SourceRow":  60,
+                                                                                                             "Children":  [
+
+                                                                                                                          ]
+                                                                                                         }
+                                                                                                     ]
+                                                                                    }
+                                                                                ]
+                                                               },
+                                                               {
+                                                                   "DeviceID":  "M0.AG.0001.IB_0009",
+                                                                   "DeviceName":  "電子控制單元 (ECU)",
+                                                                   "MaterialNo":  "M0.AG.0001.IB",
+                                                                   "SerialNumber":  "ECU-2023-A009",
+                                                                   "CurrentLocationDeviceID":  "G03309",
+                                                                   "Level":  "L1",
+                                                                   "Status":  "Normal",
+                                                                   "SourceRow":  61,
+                                                                   "Children":  [
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0002.IB_0009",
+                                                                                        "DeviceName":  "CPU模組 (ET860)",
+                                                                                        "MaterialNo":  "M0.AG.0002.IB",
+                                                                                        "SerialNumber":  "CPU-SN-8829",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0001.IB_0009",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Normal",
+                                                                                        "SourceRow":  62,
+                                                                                        "Children":  [
+
+                                                                                                     ]
+                                                                                    },
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0004.IN_0009",
+                                                                                        "DeviceName":  "SSD硬碟 (64GB)",
+                                                                                        "MaterialNo":  "M0.AG.0004.IN",
+                                                                                        "SerialNumber":  "SSD-KING-107",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0001.IB_0009",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Normal",
+                                                                                        "SourceRow":  63,
+                                                                                        "Children":  [
+
+                                                                                                     ]
+                                                                                    }
+                                                                                ]
+                                                               }
+                                                           ]
+                                          },
+                                          {
+                                              "DeviceID":  "G00001",
+                                              "DeviceName":  "AVTIM 自動售票機",
+                                              "MaterialNo":  "",
+                                              "SerialNumber":  "N/A",
+                                              "CurrentLocationDeviceID":  "G0",
+                                              "Level":  "Device",
+                                              "Status":  "Normal",
+                                              "SourceRow":  64,
+                                              "Children":  [
+                                                               {
+                                                                   "DeviceID":  "M0.AG.0010.TPU_0010",
+                                                                   "DeviceName":  "票卡處理機構",
+                                                                   "MaterialNo":  "M0.AG.0010.TPU",
+                                                                   "SerialNumber":  "TPU-2023-B064",
+                                                                   "CurrentLocationDeviceID":  "G00001",
+                                                                   "Level":  "L1",
+                                                                   "Status":  "Normal",
+                                                                   "SourceRow":  65,
+                                                                   "Children":  [
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0013.ST_0010",
+                                                                                        "DeviceName":  "單程票回收模組",
+                                                                                        "MaterialNo":  "M0.AG.0013.ST",
+                                                                                        "SerialNumber":  "RCM-2022-X20",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0010.TPU_0010",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Normal",
+                                                                                        "SourceRow":  66,
+                                                                                        "Children":  [
+                                                                                                         {
+                                                                                                             "DeviceID":  "M0.AG.0013.Motor_0009",
+                                                                                                             "DeviceName":  "步進馬達",
+                                                                                                             "MaterialNo":  "M0.AG.0013.Motor",
+                                                                                                             "SerialNumber":  "MTR-STEP-782",
+                                                                                                             "CurrentLocationDeviceID":  "M0.AG.0013.ST_0010",
+                                                                                                             "Level":  "L3",
+                                                                                                             "Status":  "Normal",
+                                                                                                             "SourceRow":  67,
+                                                                                                             "Children":  [
+
+                                                                                                                          ]
+                                                                                                         }
+                                                                                                     ]
+                                                                                    }
+                                                                                ]
+                                                               }
+                                                           ]
+                                          },
+                                          {
+                                              "DeviceID":  "G00002",
+                                              "DeviceName":  "AVTIM 自動售票機",
+                                              "MaterialNo":  "",
+                                              "SerialNumber":  "TDCB24010001",
+                                              "CurrentLocationDeviceID":  "G0",
+                                              "Level":  "Device",
+                                              "Status":  "Normal",
+                                              "SourceRow":  68,
+                                              "Children":  [
+
+                                                           ]
+                                          },
+                                          {
+                                              "DeviceID":  "G00003",
+                                              "DeviceName":  "AVTIM 自動售票機",
+                                              "MaterialNo":  "",
+                                              "SerialNumber":  "TDCB24010001",
+                                              "CurrentLocationDeviceID":  "G0",
+                                              "Level":  "Device",
+                                              "Status":  "Normal",
+                                              "SourceRow":  69,
+                                              "Children":  [
+
+                                                           ]
+                                          },
+                                          {
+                                              "DeviceID":  "G00004",
+                                              "DeviceName":  "H.AVTIM 自動售票機(無障礙)",
+                                              "MaterialNo":  "",
+                                              "SerialNumber":  "TDCB24010001",
+                                              "CurrentLocationDeviceID":  "G0",
+                                              "Level":  "Device",
+                                              "Status":  "Normal",
+                                              "SourceRow":  70,
+                                              "Children":  [
+
+                                                           ]
+                                          },
+                                          {
+                                              "DeviceID":  "G00005",
+                                              "DeviceName":  "AVTIM 自動售票機",
+                                              "MaterialNo":  "",
+                                              "SerialNumber":  "TDCB24010001",
+                                              "CurrentLocationDeviceID":  "G0",
+                                              "Level":  "Device",
+                                              "Status":  "Normal",
+                                              "SourceRow":  71,
+                                              "Children":  [
+
+                                                           ]
+                                          },
+                                          {
+                                              "DeviceID":  "G00006",
+                                              "DeviceName":  "H.AVTIM 自動售票機(無障礙)",
+                                              "MaterialNo":  "",
+                                              "SerialNumber":  "TDCB24010001",
+                                              "CurrentLocationDeviceID":  "G0",
+                                              "Level":  "Device",
+                                              "Status":  "Normal",
+                                              "SourceRow":  72,
+                                              "Children":  [
+
+                                                           ]
+                                          }
+                                      ]
+                     },
+                     {
+                         "DeviceID":  "G3",
+                         "DeviceName":  "舊社站",
+                         "MaterialNo":  "",
+                         "SerialNumber":  "",
+                         "CurrentLocationDeviceID":  "",
+                         "Level":  "Station",
+                         "Status":  "",
+                         "SourceRow":  0,
+                         "Children":  [
+                                          {
+                                              "DeviceID":  "G33101",
+                                              "DeviceName":  "AG 自動閘門",
+                                              "MaterialNo":  "",
+                                              "SerialNumber":  "AGKB24010001",
+                                              "CurrentLocationDeviceID":  "G3",
+                                              "Level":  "Device",
+                                              "Status":  "Normal",
+                                              "SourceRow":  73,
+                                              "Children":  [
+                                                               {
+                                                                   "DeviceID":  "M0.AG.0010.TPU_0011",
+                                                                   "DeviceName":  "票卡處理機構",
+                                                                   "MaterialNo":  "M0.AG.0010.TPU",
+                                                                   "SerialNumber":  "TPU-2023-B065",
+                                                                   "CurrentLocationDeviceID":  "G33101",
+                                                                   "Level":  "L1",
+                                                                   "Status":  "Warning",
+                                                                   "SourceRow":  74,
+                                                                   "Children":  [
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0013.ST_0011",
+                                                                                        "DeviceName":  "單程票回收模組",
+                                                                                        "MaterialNo":  "M0.AG.0013.ST",
+                                                                                        "SerialNumber":  "RCM-2022-X21",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0010.TPU_0011",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Warning",
+                                                                                        "SourceRow":  75,
+                                                                                        "Children":  [
+                                                                                                         {
+                                                                                                             "DeviceID":  "M0.AG.0013.Motor_0010",
+                                                                                                             "DeviceName":  "步進馬達",
+                                                                                                             "MaterialNo":  "M0.AG.0013.Motor",
+                                                                                                             "SerialNumber":  "MTR-STEP-783",
+                                                                                                             "CurrentLocationDeviceID":  "M0.AG.0013.ST_0011",
+                                                                                                             "Level":  "L3",
+                                                                                                             "Status":  "Normal",
+                                                                                                             "SourceRow":  76,
+                                                                                                             "Children":  [
+
+                                                                                                                          ]
+                                                                                                         }
+                                                                                                     ]
+                                                                                    }
+                                                                                ]
+                                                               },
+                                                               {
+                                                                   "DeviceID":  "M0.AG.0001.IB_0010",
+                                                                   "DeviceName":  "電子控制單元 (ECU)",
+                                                                   "MaterialNo":  "M0.AG.0001.IB",
+                                                                   "SerialNumber":  "ECU-2023-A010",
+                                                                   "CurrentLocationDeviceID":  "G33101",
+                                                                   "Level":  "L1",
+                                                                   "Status":  "Normal",
+                                                                   "SourceRow":  77,
+                                                                   "Children":  [
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0002.IB_0010",
+                                                                                        "DeviceName":  "CPU模組 (ET860)",
+                                                                                        "MaterialNo":  "M0.AG.0002.IB",
+                                                                                        "SerialNumber":  "CPU-SN-8830",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0001.IB_0010",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Normal",
+                                                                                        "SourceRow":  78,
+                                                                                        "Children":  [
+
+                                                                                                     ]
+                                                                                    },
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0004.IN_0010",
+                                                                                        "DeviceName":  "SSD硬碟 (64GB)",
+                                                                                        "MaterialNo":  "M0.AG.0004.IN",
+                                                                                        "SerialNumber":  "SSD-KING-108",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0001.IB_0010",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Normal",
+                                                                                        "SourceRow":  79,
+                                                                                        "Children":  [
+
+                                                                                                     ]
+                                                                                    }
+                                                                                ]
+                                                               }
+                                                           ]
+                                          },
+                                          {
+                                              "DeviceID":  "G33102",
+                                              "DeviceName":  "AG 自動閘門",
+                                              "MaterialNo":  "",
+                                              "SerialNumber":  "AGKB24010001",
+                                              "CurrentLocationDeviceID":  "G3",
+                                              "Level":  "Device",
+                                              "Status":  "Normal",
+                                              "SourceRow":  80,
+                                              "Children":  [
+                                                               {
+                                                                   "DeviceID":  "M0.AG.0010.TPU_0012",
+                                                                   "DeviceName":  "票卡處理機構",
+                                                                   "MaterialNo":  "M0.AG.0010.TPU",
+                                                                   "SerialNumber":  "TPU-2023-B066",
+                                                                   "CurrentLocationDeviceID":  "G33102",
+                                                                   "Level":  "L1",
+                                                                   "Status":  "Warning",
+                                                                   "SourceRow":  81,
+                                                                   "Children":  [
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0013.ST_0012",
+                                                                                        "DeviceName":  "單程票回收模組",
+                                                                                        "MaterialNo":  "M0.AG.0013.ST",
+                                                                                        "SerialNumber":  "RCM-2022-X22",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0010.TPU_0012",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Warning",
+                                                                                        "SourceRow":  82,
+                                                                                        "Children":  [
+                                                                                                         {
+                                                                                                             "DeviceID":  "M0.AG.0013.Motor_0011",
+                                                                                                             "DeviceName":  "步進馬達",
+                                                                                                             "MaterialNo":  "M0.AG.0013.Motor",
+                                                                                                             "SerialNumber":  "MTR-STEP-784",
+                                                                                                             "CurrentLocationDeviceID":  "M0.AG.0013.ST_0012",
+                                                                                                             "Level":  "L3",
+                                                                                                             "Status":  "Normal",
+                                                                                                             "SourceRow":  83,
+                                                                                                             "Children":  [
+
+                                                                                                                          ]
+                                                                                                         }
+                                                                                                     ]
+                                                                                    }
+                                                                                ]
+                                                               },
+                                                               {
+                                                                   "DeviceID":  "M0.AG.0001.IB_0011",
+                                                                   "DeviceName":  "電子控制單元 (ECU)",
+                                                                   "MaterialNo":  "M0.AG.0001.IB",
+                                                                   "SerialNumber":  "ECU-2023-A011",
+                                                                   "CurrentLocationDeviceID":  "G33102",
+                                                                   "Level":  "L1",
+                                                                   "Status":  "Normal",
+                                                                   "SourceRow":  84,
+                                                                   "Children":  [
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0002.IB_0011",
+                                                                                        "DeviceName":  "CPU模組 (ET860)",
+                                                                                        "MaterialNo":  "M0.AG.0002.IB",
+                                                                                        "SerialNumber":  "CPU-SN-8831",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0001.IB_0011",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Normal",
+                                                                                        "SourceRow":  85,
+                                                                                        "Children":  [
+
+                                                                                                     ]
+                                                                                    },
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0004.IN_0011",
+                                                                                        "DeviceName":  "SSD硬碟 (64GB)",
+                                                                                        "MaterialNo":  "M0.AG.0004.IN",
+                                                                                        "SerialNumber":  "SSD-KING-109",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0001.IB_0011",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Normal",
+                                                                                        "SourceRow":  86,
+                                                                                        "Children":  [
+
+                                                                                                     ]
+                                                                                    }
+                                                                                ]
+                                                               }
+                                                           ]
+                                          },
+                                          {
+                                              "DeviceID":  "G33103",
+                                              "DeviceName":  "AG 自動閘門",
+                                              "MaterialNo":  "",
+                                              "SerialNumber":  "AGKB24010001",
+                                              "CurrentLocationDeviceID":  "G3",
+                                              "Level":  "Device",
+                                              "Status":  "Normal",
+                                              "SourceRow":  87,
+                                              "Children":  [
+                                                               {
+                                                                   "DeviceID":  "M0.AG.0010.TPU_0013",
+                                                                   "DeviceName":  "票卡處理機構",
+                                                                   "MaterialNo":  "M0.AG.0010.TPU",
+                                                                   "SerialNumber":  "TPU-2023-B067",
+                                                                   "CurrentLocationDeviceID":  "G33103",
+                                                                   "Level":  "L1",
+                                                                   "Status":  "Warning",
+                                                                   "SourceRow":  88,
+                                                                   "Children":  [
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0013.ST_0013",
+                                                                                        "DeviceName":  "單程票回收模組",
+                                                                                        "MaterialNo":  "M0.AG.0013.ST",
+                                                                                        "SerialNumber":  "RCM-2022-X23",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0010.TPU_0013",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Warning",
+                                                                                        "SourceRow":  89,
+                                                                                        "Children":  [
+                                                                                                         {
+                                                                                                             "DeviceID":  "M0.AG.0013.Motor_0012",
+                                                                                                             "DeviceName":  "步進馬達",
+                                                                                                             "MaterialNo":  "M0.AG.0013.Motor",
+                                                                                                             "SerialNumber":  "MTR-STEP-785",
+                                                                                                             "CurrentLocationDeviceID":  "M0.AG.0013.ST_0013",
+                                                                                                             "Level":  "L3",
+                                                                                                             "Status":  "Normal",
+                                                                                                             "SourceRow":  90,
+                                                                                                             "Children":  [
+
+                                                                                                                          ]
+                                                                                                         }
+                                                                                                     ]
+                                                                                    }
+                                                                                ]
+                                                               },
+                                                               {
+                                                                   "DeviceID":  "M0.AG.0001.IB_0012",
+                                                                   "DeviceName":  "電子控制單元 (ECU)",
+                                                                   "MaterialNo":  "M0.AG.0001.IB",
+                                                                   "SerialNumber":  "ECU-2023-A012",
+                                                                   "CurrentLocationDeviceID":  "G33103",
+                                                                   "Level":  "L1",
+                                                                   "Status":  "Normal",
+                                                                   "SourceRow":  91,
+                                                                   "Children":  [
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0002.IB_0012",
+                                                                                        "DeviceName":  "CPU模組 (ET860)",
+                                                                                        "MaterialNo":  "M0.AG.0002.IB",
+                                                                                        "SerialNumber":  "CPU-SN-8832",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0001.IB_0012",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Normal",
+                                                                                        "SourceRow":  92,
+                                                                                        "Children":  [
+
+                                                                                                     ]
+                                                                                    },
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0004.IN_0012",
+                                                                                        "DeviceName":  "SSD硬碟 (64GB)",
+                                                                                        "MaterialNo":  "M0.AG.0004.IN",
+                                                                                        "SerialNumber":  "SSD-KING-110",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0001.IB_0012",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Normal",
+                                                                                        "SourceRow":  93,
+                                                                                        "Children":  [
+
+                                                                                                     ]
+                                                                                    }
+                                                                                ]
+                                                               }
+                                                           ]
+                                          },
+                                          {
+                                              "DeviceID":  "G33104",
+                                              "DeviceName":  "H.AG 自動閘門(無障礙)",
+                                              "MaterialNo":  "",
+                                              "SerialNumber":  "AGKB24010001",
+                                              "CurrentLocationDeviceID":  "G3",
+                                              "Level":  "Device",
+                                              "Status":  "Normal",
+                                              "SourceRow":  94,
+                                              "Children":  [
+                                                               {
+                                                                   "DeviceID":  "M0.AG.0010.TPU_0014",
+                                                                   "DeviceName":  "票卡處理機構",
+                                                                   "MaterialNo":  "M0.AG.0010.TPU",
+                                                                   "SerialNumber":  "TPU-2023-B068",
+                                                                   "CurrentLocationDeviceID":  "G33104",
+                                                                   "Level":  "L1",
+                                                                   "Status":  "Warning",
+                                                                   "SourceRow":  95,
+                                                                   "Children":  [
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0013.ST_0014",
+                                                                                        "DeviceName":  "單程票回收模組",
+                                                                                        "MaterialNo":  "M0.AG.0013.ST",
+                                                                                        "SerialNumber":  "RCM-2022-X24",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0010.TPU_0014",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Warning",
+                                                                                        "SourceRow":  96,
+                                                                                        "Children":  [
+                                                                                                         {
+                                                                                                             "DeviceID":  "M0.AG.0013.Motor_0013",
+                                                                                                             "DeviceName":  "步進馬達",
+                                                                                                             "MaterialNo":  "M0.AG.0013.Motor",
+                                                                                                             "SerialNumber":  "MTR-STEP-786",
+                                                                                                             "CurrentLocationDeviceID":  "M0.AG.0013.ST_0014",
+                                                                                                             "Level":  "L3",
+                                                                                                             "Status":  "Normal",
+                                                                                                             "SourceRow":  97,
+                                                                                                             "Children":  [
+
+                                                                                                                          ]
+                                                                                                         }
+                                                                                                     ]
+                                                                                    }
+                                                                                ]
+                                                               },
+                                                               {
+                                                                   "DeviceID":  "M0.AG.0001.IB_0013",
+                                                                   "DeviceName":  "電子控制單元 (ECU)",
+                                                                   "MaterialNo":  "M0.AG.0001.IB",
+                                                                   "SerialNumber":  "ECU-2023-A013",
+                                                                   "CurrentLocationDeviceID":  "G33104",
+                                                                   "Level":  "L1",
+                                                                   "Status":  "Normal",
+                                                                   "SourceRow":  98,
+                                                                   "Children":  [
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0002.IB_0013",
+                                                                                        "DeviceName":  "CPU模組 (ET860)",
+                                                                                        "MaterialNo":  "M0.AG.0002.IB",
+                                                                                        "SerialNumber":  "CPU-SN-8833",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0001.IB_0013",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Normal",
+                                                                                        "SourceRow":  99,
+                                                                                        "Children":  [
+
+                                                                                                     ]
+                                                                                    },
+                                                                                    {
+                                                                                        "DeviceID":  "M0.AG.0004.IN_0013",
+                                                                                        "DeviceName":  "SSD硬碟 (64GB)",
+                                                                                        "MaterialNo":  "M0.AG.0004.IN",
+                                                                                        "SerialNumber":  "SSD-KING-111",
+                                                                                        "CurrentLocationDeviceID":  "M0.AG.0001.IB_0013",
+                                                                                        "Level":  "L2",
+                                                                                        "Status":  "Normal",
+                                                                                        "SourceRow":  100,
+                                                                                        "Children":  [
+
+                                                                                                     ]
+                                                                                    }
+                                                                                ]
+                                                               }
+                                                           ]
+                                          }
+                                      ]
+                     }
+                 ]
+}

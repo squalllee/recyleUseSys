@@ -52,7 +52,8 @@ const handleSubmit = async () => {
       if (rememberMe.value) {
         localStorage.setItem('rememberedEmail', email.value)
       }
-      auth.login(result.user_info ?? { TMNAME: email.value, JOBName: '' })
+      // 登入帳號本身就是員工編號(KEYNO)，登入系統回傳的 user_info 並未包含此欄位，故在此補上
+      auth.login({ ...(result.user_info ?? { TMNAME: email.value, JOBName: '' }), KEYNO: email.value })
       router.push(redirectPath.value)
     } else {
       alert(result.message || '帳號或密碼錯誤')

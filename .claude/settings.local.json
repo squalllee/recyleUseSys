@@ -9,7 +9,21 @@
       "Bash(dir /b *.json *.md *.js *.vue *.ts *.yaml *.yml)",
       "Bash(findstr /v \"node_modules\")",
       "mcp__ide__getDiagnostics",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(claude mcp *)",
+      "Bash(npm search *)",
+      "Bash(npm view *)",
+      "PowerShell(claude mcp *)",
+      "Bash(where claude *)",
+      "Read(//c/Users/110140/AppData/Roaming/npm//**)",
+      "Bash(python3 *)",
+      "Bash(node *)",
+      "Bash(timeout 20 npx -y mssql-mcp@latest --help)",
+      "Bash(echo \"EXIT:$?\")",
+      "mcp__mssql__mssql_connect_database",
+      "mcp__mssql__mssql_describe_table_columns",
+      "mcp__mssql__mssql_connection_status",
+      "mcp__mssql__mssql_run_sql_query"
     ]
   }
 }

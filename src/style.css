@@ -12,7 +12,9 @@ html {
 }
 
 body {
-  background-color: #f8fafc;
+  background-color: #f4f6f8;
+  color: #243449;
+  font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
 }
 
 main {

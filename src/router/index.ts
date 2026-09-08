@@ -21,15 +21,39 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: 'repairable-parts',
-        name: 'RepairableParts',
-        component: () => import('../pages/RepairableParts.vue'),
+        redirect: { name: 'MaintTypeMaintenance' },
+      },
+      {
+        path: 'maintenance-object-types',
+        name: 'MaintTypeMaintenance',
+        component: () => import('../pages/MaintTypeMaintenance.vue'),
+      },
+      {
+        path: 'repairable-devices',
+        name: 'RepairableDevices',
+        component: () => import('../pages/RepairableDevices.vue'),
+      },
+      {
+        path: 'action-types',
+        name: 'ActionTypeMaintenance',
+        component: () => import('../pages/ActionTypeMaintenance.vue'),
+      },
+      {
+        path: 'fault-reason-types',
+        name: 'FaultReasonTypeMaintenance',
+        component: () => import('../pages/FaultReasonTypeMaintenance.vue'),
+      },
+      {
+        path: 'maintenance-records',
+        name: 'MaintenanceRecords',
+        component: () => import('../pages/MaintenanceRecords.vue'),
       },
     ],
   },
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes,
 })
 

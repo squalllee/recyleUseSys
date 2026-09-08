@@ -1,4 +1,5 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 const express = require('express');
 const cors = require('cors');
 const mssql = require('mssql');
@@ -117,12 +118,32 @@ exports.connectWMSDB = connectWMSDB;
 const apiRouter = require('./routes/api');
 const employeeRouter = require('./routes/employee');
 const materialRouter = require('./routes/materials');
+const repairableDevicesRouter = require('./routes/repairableDevices');
 app.use('/api', apiRouter);
+app.use('/api', repairableDevicesRouter);
 app.use('/api/employee', employeeRouter);
 app.use('/api/materials', materialRouter);
 
+// IIS removes the child application path before handing the request to Node.
+// Keep /api for local use and expose the same routes at the child app root.
+app.use('/', apiRouter);
+app.use('/', repairableDevicesRouter);
+app.use('/employee', employeeRouter);
+app.use('/materials', materialRouter);
+
+// Some iisnode configurations preserve the complete IIS application path.
+// Support that form as well as the stripped child-application path above.
+const IIS_APPLICATION_PATH = '/recycleUseSys/api';
+app.use(IIS_APPLICATION_PATH, apiRouter);
+app.use(IIS_APPLICATION_PATH, repairableDevicesRouter);
+app.use(`${IIS_APPLICATION_PATH}/employee`, employeeRouter);
+app.use(`${IIS_APPLICATION_PATH}/materials`, materialRouter);
+
 // Health check
 app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+app.get(`${IIS_APPLICATION_PATH}/health`, (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 

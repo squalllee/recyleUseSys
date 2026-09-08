@@ -51,7 +51,15 @@ const search = async (keyword: string) => {
   try {
     const results = await searchMaterials(keyword)
     if (seq !== requestSeq) return // stale response, a newer search has started
-    suggestions.value = results.slice(0, 50)
+    // 只保留物料編號或物料名稱確實包含使用者輸入關鍵字的項目
+    const lowerKeyword = keyword.toLowerCase()
+    suggestions.value = results
+      .filter(
+        (item) =>
+          item.物料編號?.toLowerCase().includes(lowerKeyword) ||
+          item.物料名稱?.toLowerCase().includes(lowerKeyword)
+      )
+      .slice(0, 50)
     isOpen.value = true
     highlightedIndex.value = suggestions.value.length > 0 ? 0 : -1
   } catch (error) {
@@ -90,9 +98,10 @@ const onFocus = () => {
 }
 
 const selectMaterial = (material: Material) => {
-  query.value = material.物料編號
-  emit('update:modelValue', material.物料編號)
-  emit('select', material)
+  const normalized: Material = { ...material, 物料編號: material.物料編號.trim() }
+  query.value = normalized.物料編號
+  emit('update:modelValue', normalized.物料編號)
+  emit('select', normalized)
   closeDropdown()
 }
 
@@ -145,7 +154,7 @@ onBeforeUnmount(() => {
 
     <ul
       v-if="isOpen"
-      class="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-md border border-slate-200 bg-white shadow-lg text-sm"
+      class="absolute z-30 mt-1 w-full max-h-60 overflow-auto rounded-md border border-slate-200 bg-white shadow-lg text-sm"
     >
       <li v-if="loading" class="px-3 py-2 text-slate-400">搜尋中...</li>
       <li v-else-if="errorMessage" class="px-3 py-2 text-red-500">{{ errorMessage }}</li>
@@ -155,10 +164,11 @@ onBeforeUnmount(() => {
           :key="item.物料編號"
           class="cursor-pointer px-3 py-2 hover:bg-blue-50"
           :class="index === highlightedIndex ? 'bg-blue-50' : ''"
+          :title="`${item.物料編號} - ${item.物料名稱}${item.規格 ? ' ・ ' + item.規格 : ''}`"
           @mousedown.prevent="selectMaterial(item)"
           @mouseenter="highlightedIndex = index"
         >
-          <div class="font-medium text-slate-900">{{ item.物料編號 }}</div>
+          <div class="font-medium text-slate-900 truncate">{{ item.物料編號 }}</div>
           <div class="text-slate-500 truncate">
             {{ item.物料名稱 }}<span v-if="item.規格"> ・ {{ item.規格 }}</span>
           </div>

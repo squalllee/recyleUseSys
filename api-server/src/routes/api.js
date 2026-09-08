@@ -324,6 +324,159 @@ router.delete('/maint-type-phrases/:id', async (req, res) => {
 });
 
 // ============================================
+// Locations API (地點)
+// ============================================
+
+// Get Locations (paginated, sortable, optional keyword search on LocationCode/LocationName)
+const LOCATION_SORT_COLUMNS = {
+  LocationCode: 'LocationCode',
+  LocationName: 'LocationName',
+  SortOrder: 'SortOrder',
+  IsActive: 'IsActive',
+};
+
+router.get('/locations', async (req, res) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const pageSize = Math.min(100, Math.max(1, parseInt(req.query.pageSize, 10) || 20));
+    const offset = (page - 1) * pageSize;
+    const sortBy = LOCATION_SORT_COLUMNS[req.query.sortBy] || 'SortOrder';
+    const sortDir = req.query.sortDir === 'desc' ? 'DESC' : 'ASC';
+    const keyword = req.query.keyword ? `%${req.query.keyword}%` : null;
+    const unit = req.query.unit || null;
+
+    const conditions = [];
+    if (keyword) conditions.push('(LocationCode LIKE @Keyword OR LocationName LIKE @Keyword)');
+    // 單位代碼前 3 碼相同視為同單位；尚未記錄建立人/單位的舊資料對所有人開放
+    if (unit) conditions.push('(LEFT(CreatedByUnit, 3) = LEFT(@Unit, 3) OR CreatedByUnit IS NULL)');
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const pool = await connectDB();
+
+    const countRequest = pool.request();
+    if (keyword) countRequest.input('Keyword', mssql.NVarChar(100), keyword);
+    if (unit) countRequest.input('Unit', mssql.VarChar(20), unit);
+    const countResult = await countRequest.query(`SELECT COUNT(*) AS Total FROM Locations ${whereClause}`);
+
+    const dataRequest = pool.request();
+    if (keyword) dataRequest.input('Keyword', mssql.NVarChar(100), keyword);
+    if (unit) dataRequest.input('Unit', mssql.VarChar(20), unit);
+    dataRequest.input('Offset', mssql.Int, offset);
+    dataRequest.input('PageSize', mssql.Int, pageSize);
+    const dataResult = await dataRequest.query(`
+      SELECT * FROM Locations
+      ${whereClause}
+      ORDER BY ${sortBy} ${sortDir}
+      OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY
+    `);
+
+    res.json({
+      data: dataResult.recordset,
+      total: countResult.recordset[0].Total,
+      page,
+      pageSize,
+    });
+  } catch (error) {
+    console.error('Error fetching Locations:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get single Location by ID
+router.get('/locations/:id', async (req, res) => {
+  try {
+    const pool = await connectDB();
+    const result = await pool.request()
+      .input('LocationID', mssql.Int, req.params.id)
+      .query('SELECT * FROM Locations WHERE LocationID = @LocationID');
+
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ error: 'Location not found' });
+    }
+    res.json(result.recordset[0]);
+  } catch (error) {
+    console.error('Error fetching Location:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create Location
+router.post('/locations', async (req, res) => {
+  try {
+    const { LocationCode, LocationName, SortOrder, IsActive, CreatedBy, CreatedByUnit } = req.body;
+    const pool = await connectDB();
+
+    const result = await pool.request()
+      .input('LocationCode', mssql.VarChar(10), LocationCode)
+      .input('LocationName', mssql.NVarChar(100), LocationName)
+      .input('SortOrder', mssql.Int, SortOrder || null)
+      .input('IsActive', mssql.Bit, IsActive !== undefined ? IsActive : 1)
+      .input('CreatedBy', mssql.VarChar(6), CreatedBy || null)
+      .input('CreatedByUnit', mssql.VarChar(20), CreatedByUnit || null)
+      .query(`
+        INSERT INTO Locations (LocationCode, LocationName, SortOrder, IsActive, CreatedBy, CreatedByUnit)
+        OUTPUT INSERTED.*
+        VALUES (@LocationCode, @LocationName, @SortOrder, @IsActive, @CreatedBy, @CreatedByUnit)
+      `);
+
+    res.status(201).json(result.recordset[0]);
+  } catch (error) {
+    console.error('Error creating Location:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update Location
+router.put('/locations/:id', async (req, res) => {
+  try {
+    const { LocationCode, LocationName, SortOrder, IsActive } = req.body;
+    const pool = await connectDB();
+
+    const result = await pool.request()
+      .input('LocationID', mssql.Int, req.params.id)
+      .input('LocationCode', mssql.VarChar(10), LocationCode)
+      .input('LocationName', mssql.NVarChar(100), LocationName)
+      .input('SortOrder', mssql.Int, SortOrder !== undefined ? SortOrder : null)
+      .input('IsActive', mssql.Bit, IsActive !== undefined ? IsActive : null)
+      .query(`
+        UPDATE Locations
+        SET LocationCode = @LocationCode,
+            LocationName = @LocationName,
+            SortOrder = @SortOrder,
+            IsActive = @IsActive
+        OUTPUT INSERTED.*
+        WHERE LocationID = @LocationID
+      `);
+
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ error: 'Location not found' });
+    }
+    res.json(result.recordset[0]);
+  } catch (error) {
+    console.error('Error updating Location:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete Location
+router.delete('/locations/:id', async (req, res) => {
+  try {
+    const pool = await connectDB();
+    const result = await pool.request()
+      .input('LocationID', mssql.Int, req.params.id)
+      .query('DELETE FROM Locations WHERE LocationID = @LocationID');
+
+    if (result.rowsAffected[0] === 0) {
+      return res.status(404).json({ error: 'Location not found' });
+    }
+    res.status(204).send();
+  } catch (error) {
+    console.error('Error deleting Location:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
 // EquipmentMaintenanceRecords API (設備維修記錄)
 // ============================================
 
@@ -342,7 +495,7 @@ router.get('/equipment-maintenance-records', async (req, res) => {
         FROM EquipmentMaintenanceRecords emr
         LEFT JOIN MaintTypePhrases mtp ON emr.MaintTypeCode = mtp.MaintTypeID
         LEFT JOIN FaultReasonPhrases frp ON emr.FaultReasonCode = frp.ReasonID
-        LEFT JOIN ActionPhrases ap ON emr.ActionCode = ap.ActionID
+        LEFT JOIN ActionPhrases ap ON emr.ActionCode = CAST(ap.ActionID AS VARCHAR(20))
         ORDER BY emr.CreatedAt DESC
       `);
     res.json(result.recordset);
@@ -352,8 +505,8 @@ router.get('/equipment-maintenance-records', async (req, res) => {
   }
 });
 
-// Get the next SerialNumber to use for a given MaterialNo (numbering starts at 1 per MaterialNo)
-router.get('/equipment-maintenance-records/next-serial/:materialNo', async (req, res) => {
+// Check whether a MaterialNo already has an EquipmentMaintenanceRecord
+router.get('/equipment-maintenance-records/exists/:materialNo', async (req, res) => {
   try {
     const { materialNo } = req.params;
     const pool = await connectDB();
@@ -361,14 +514,14 @@ router.get('/equipment-maintenance-records/next-serial/:materialNo', async (req,
     const result = await pool.request()
       .input('MaterialNo', mssql.VarChar(13), materialNo)
       .query(`
-        SELECT ISNULL(MAX(TRY_CAST(SerialNumber AS INT)), 0) + 1 AS NextSerialNumber
+        SELECT COUNT(*) AS Cnt
         FROM EquipmentMaintenanceRecords
         WHERE MaterialNo = @MaterialNo
       `);
 
-    res.json({ NextSerialNumber: result.recordset[0].NextSerialNumber });
+    res.json({ exists: result.recordset[0].Cnt > 0 });
   } catch (error) {
-    console.error('Error computing next serial number:', error);
+    console.error('Error checking material existence:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -404,7 +557,7 @@ router.get('/equipment-maintenance-records/:materialNo/:serialNumber/:id', async
 router.post('/equipment-maintenance-records', async (req, res) => {
   try {
     const { MaterialNo, SerialNumber, Id, SystemCode, InChargeID, PurchaseDate,
-            MaintTypeCode, MaintTypeYear, MaintTypeOther, MaintStartDate, MaintEndDate,
+            MaintTypeCode, MaintTypeOther, MaintStartDate, MaintEndDate,
             WorkOrderNumber, RemovalDate, RemovalLocation, InstallationDate,
             InstallationLocation, FaultReasonCode, FaultReasonOther, ActionCode,
             ActionOther, ReplacementParts, CompletionDate, Remarks } = req.body;
@@ -418,7 +571,6 @@ router.post('/equipment-maintenance-records', async (req, res) => {
       .input('InChargeID', mssql.VarChar(6), InChargeID)
       .input('PurchaseDate', mssql.Date, PurchaseDate || null)
       .input('MaintTypeCode', mssql.VarChar(20), MaintTypeCode || null)
-      .input('MaintTypeYear', mssql.VarChar(10), MaintTypeYear || null)
       .input('MaintTypeOther', mssql.NVarChar(100), MaintTypeOther || null)
       .input('MaintStartDate', mssql.Date, MaintStartDate || null)
       .input('MaintEndDate', mssql.Date, MaintEndDate || null)
@@ -429,7 +581,7 @@ router.post('/equipment-maintenance-records', async (req, res) => {
       .input('InstallationLocation', mssql.NVarChar(50), InstallationLocation || null)
       .input('FaultReasonCode', mssql.VarChar(20), FaultReasonCode || null)
       .input('FaultReasonOther', mssql.NVarChar(200), FaultReasonOther || null)
-      .input('ActionCode', mssql.VarChar(20), ActionCode || null)
+      .input('ActionCode', mssql.VarChar(100), ActionCode || null)
       .input('ActionOther', mssql.NVarChar(200), ActionOther || null)
       .input('ReplacementParts', mssql.NVarChar('max'), ReplacementParts || null)
       .input('CompletionDate', mssql.Date, CompletionDate || null)
@@ -437,7 +589,7 @@ router.post('/equipment-maintenance-records', async (req, res) => {
       .query(`
         INSERT INTO EquipmentMaintenanceRecords (
           MaterialNo, SerialNumber, Id, SystemCode, InChargeID, PurchaseDate,
-          MaintTypeCode, MaintTypeYear, MaintTypeOther, MaintStartDate, MaintEndDate,
+          MaintTypeCode, MaintTypeOther, MaintStartDate, MaintEndDate,
           WorkOrderNumber, RemovalDate, RemovalLocation, InstallationDate,
           InstallationLocation, FaultReasonCode, FaultReasonOther, ActionCode,
           ActionOther, ReplacementParts, CompletionDate, Remarks, CreatedAt, UpdatedAt
@@ -445,7 +597,7 @@ router.post('/equipment-maintenance-records', async (req, res) => {
         OUTPUT INSERTED.*
         VALUES (
           @MaterialNo, @SerialNumber, @Id, @SystemCode, @InChargeID, @PurchaseDate,
-          @MaintTypeCode, @MaintTypeYear, @MaintTypeOther, @MaintStartDate, @MaintEndDate,
+          @MaintTypeCode, @MaintTypeOther, @MaintStartDate, @MaintEndDate,
           @WorkOrderNumber, @RemovalDate, @RemovalLocation, @InstallationDate,
           @InstallationLocation, @FaultReasonCode, @FaultReasonOther, @ActionCode,
           @ActionOther, @ReplacementParts, @CompletionDate, @Remarks, GETDATE(), GETDATE()
@@ -463,7 +615,7 @@ router.post('/equipment-maintenance-records', async (req, res) => {
 router.put('/equipment-maintenance-records/:materialNo/:serialNumber/:id', async (req, res) => {
   try {
     const { materialNo, serialNumber, id } = req.params;
-    const { SystemCode, InChargeID, PurchaseDate, MaintTypeCode, MaintTypeYear,
+    const { SystemCode, InChargeID, PurchaseDate, MaintTypeCode,
             MaintTypeOther, MaintStartDate, MaintEndDate, WorkOrderNumber, RemovalDate,
             RemovalLocation, InstallationDate, InstallationLocation, FaultReasonCode,
             FaultReasonOther, ActionCode, ActionOther, ReplacementParts, CompletionDate,
@@ -478,7 +630,6 @@ router.put('/equipment-maintenance-records/:materialNo/:serialNumber/:id', async
       .input('InChargeID', mssql.VarChar(6), InChargeID)
       .input('PurchaseDate', mssql.Date, PurchaseDate || null)
       .input('MaintTypeCode', mssql.VarChar(20), MaintTypeCode || null)
-      .input('MaintTypeYear', mssql.VarChar(10), MaintTypeYear || null)
       .input('MaintTypeOther', mssql.NVarChar(100), MaintTypeOther || null)
       .input('MaintStartDate', mssql.Date, MaintStartDate || null)
       .input('MaintEndDate', mssql.Date, MaintEndDate || null)
@@ -489,7 +640,7 @@ router.put('/equipment-maintenance-records/:materialNo/:serialNumber/:id', async
       .input('InstallationLocation', mssql.NVarChar(50), InstallationLocation || null)
       .input('FaultReasonCode', mssql.VarChar(20), FaultReasonCode || null)
       .input('FaultReasonOther', mssql.NVarChar(200), FaultReasonOther || null)
-      .input('ActionCode', mssql.VarChar(20), ActionCode || null)
+      .input('ActionCode', mssql.VarChar(100), ActionCode || null)
       .input('ActionOther', mssql.NVarChar(200), ActionOther || null)
       .input('ReplacementParts', mssql.NVarChar('max'), ReplacementParts || null)
       .input('CompletionDate', mssql.Date, CompletionDate || null)
@@ -500,7 +651,6 @@ router.put('/equipment-maintenance-records/:materialNo/:serialNumber/:id', async
             InChargeID = @InChargeID,
             PurchaseDate = @PurchaseDate,
             MaintTypeCode = @MaintTypeCode,
-            MaintTypeYear = @MaintTypeYear,
             MaintTypeOther = @MaintTypeOther,
             MaintStartDate = @MaintStartDate,
             MaintEndDate = @MaintEndDate,

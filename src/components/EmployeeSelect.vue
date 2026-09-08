@@ -1,17 +1,15 @@
 <script setup lang="ts">
 import { ref, watch, onBeforeUnmount } from 'vue'
-import { searchEmployees, type Employee } from '../services/apiService'
+import { searchEmployees, getEmployeeByKeyno, type Employee } from '../services/apiService'
 
 const props = withDefaults(
   defineProps<{
     modelValue: string
     placeholder?: string
-    maxlength?: number
     disabled?: boolean
   }>(),
   {
     placeholder: '輸入姓名或員工編號搜尋',
-    maxlength: 6,
     disabled: false,
   }
 )
@@ -21,7 +19,12 @@ const emit = defineEmits<{
   select: [employee: Employee]
 }>()
 
-const query = ref(props.modelValue)
+const labelOf = (employee: Employee) => `${employee.KEYNO}-${employee.TMNAME}`
+
+const displayText = ref('')
+const committedKeyno = ref('')
+const committedLabel = ref('')
+const hasPendingEdit = ref(false)
 const suggestions = ref<Employee[]>([])
 const isOpen = ref(false)
 const loading = ref(false)
@@ -30,13 +33,33 @@ const highlightedIndex = ref(-1)
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 let requestSeq = 0
 
+// 依 KEYNO 反查姓名，讓已選定的值能以「員工編號-員工姓名」顯示
+const syncFromModelValue = async (keyno: string) => {
+  if (!keyno) {
+    committedKeyno.value = ''
+    committedLabel.value = ''
+    displayText.value = ''
+    return
+  }
+  if (keyno === committedKeyno.value) return
+
+  committedKeyno.value = keyno
+  try {
+    const employee = await getEmployeeByKeyno(keyno)
+    committedLabel.value = labelOf(employee)
+  } catch (error) {
+    console.error('Failed to load employee by KEYNO:', error)
+    committedLabel.value = keyno
+  }
+  displayText.value = committedLabel.value
+}
+
 watch(
   () => props.modelValue,
   (value) => {
-    if (value !== query.value) {
-      query.value = value
-    }
-  }
+    if (!hasPendingEdit.value) syncFromModelValue(value)
+  },
+  { immediate: true }
 )
 
 const closeDropdown = () => {
@@ -51,7 +74,15 @@ const search = async (keyword: string) => {
   try {
     const results = await searchEmployees(keyword)
     if (seq !== requestSeq) return // stale response, a newer search has started
-    suggestions.value = results.slice(0, 50)
+    // 只保留姓名或員工編號確實包含使用者輸入關鍵字的項目
+    const lowerKeyword = keyword.toLowerCase()
+    suggestions.value = results
+      .filter(
+        (item) =>
+          item.TMNAME?.toLowerCase().includes(lowerKeyword) ||
+          item.KEYNO?.toLowerCase().includes(lowerKeyword)
+      )
+      .slice(0, 50)
     isOpen.value = true
     highlightedIndex.value = suggestions.value.length > 0 ? 0 : -1
   } catch (error) {
@@ -67,8 +98,8 @@ const search = async (keyword: string) => {
 
 const onInput = (event: Event) => {
   const value = (event.target as HTMLInputElement).value
-  query.value = value
-  emit('update:modelValue', value)
+  displayText.value = value
+  hasPendingEdit.value = true
 
   if (debounceTimer) clearTimeout(debounceTimer)
 
@@ -84,13 +115,17 @@ const onInput = (event: Event) => {
 }
 
 const onFocus = () => {
-  if (query.value.trim() && suggestions.value.length > 0) {
-    isOpen.value = true
-  }
+  // 清空顯示文字讓使用者可以直接輸入新的搜尋關鍵字（必須重新選擇才能變更值）
+  displayText.value = ''
+  suggestions.value = []
+  errorMessage.value = ''
 }
 
 const selectEmployee = (employee: Employee) => {
-  query.value = employee.KEYNO
+  committedKeyno.value = employee.KEYNO
+  committedLabel.value = labelOf(employee)
+  displayText.value = committedLabel.value
+  hasPendingEdit.value = false
   emit('update:modelValue', employee.KEYNO)
   emit('select', employee)
   closeDropdown()
@@ -118,8 +153,21 @@ const onKeydown = (event: KeyboardEvent) => {
 }
 
 const onBlur = () => {
-  // Delay so a mousedown on an option registers before the list unmounts
-  setTimeout(closeDropdown, 150)
+  // 延遲讓下拉選項的 mousedown 事件能先觸發選取
+  setTimeout(() => {
+    closeDropdown()
+    if (hasPendingEdit.value) {
+      // 使用者有輸入文字但未從清單中選取，不允許手動輸入，清空欄位
+      hasPendingEdit.value = false
+      committedKeyno.value = ''
+      committedLabel.value = ''
+      displayText.value = ''
+      if (props.modelValue) emit('update:modelValue', '')
+    } else {
+      // 未輸入任何文字，恢復原本已選定的顯示內容
+      displayText.value = committedLabel.value
+    }
+  }, 150)
 }
 
 onBeforeUnmount(() => {
@@ -130,9 +178,8 @@ onBeforeUnmount(() => {
 <template>
   <div class="relative">
     <input
-      :value="query"
+      :value="displayText"
       type="text"
-      :maxlength="maxlength"
       :disabled="disabled"
       :placeholder="placeholder"
       autocomplete="off"
@@ -145,7 +192,7 @@ onBeforeUnmount(() => {
 
     <ul
       v-if="isOpen"
-      class="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-md border border-slate-200 bg-white shadow-lg text-sm"
+      class="absolute z-30 mt-1 w-full max-h-60 overflow-auto rounded-md border border-slate-200 bg-white shadow-lg text-sm"
     >
       <li v-if="loading" class="px-3 py-2 text-slate-400">搜尋中...</li>
       <li v-else-if="errorMessage" class="px-3 py-2 text-red-500">{{ errorMessage }}</li>
