@@ -503,8 +503,9 @@ const getLocationLabel = (code: string | null) => {
 </script>
 
 <template>
-  <div class="p-4 max-w-full mx-auto">
-    <h2 class="text-xl font-bold text-slate-900 mb-4">維修記錄維護</h2>
+  <div class="max-w-full mx-auto">
+    <h2 class="text-xl font-bold text-slate-900">維修記錄維護</h2>
+    <p class="mt-1 mb-5 text-sm text-slate-500">依物料查詢檢修歷程，管理故障原因、處理方式與完工資訊。</p>
 
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
       <div class="p-4 border-b border-slate-200 flex flex-wrap justify-between items-center gap-3 bg-slate-50/50 rounded-t-xl">
@@ -515,8 +516,8 @@ const getLocationLabel = (code: string | null) => {
           </template>
           <template v-else>請搜尋以顯示資料</template>
         </p>
-        <div class="flex items-center gap-2">
-          <div class="w-64">
+        <div class="flex w-full sm:w-auto flex-wrap items-center gap-2">
+          <div class="w-full sm:w-64">
             <MaterialNoSelect
               v-model="searchKeyword"
               placeholder="輸入物料編號或物料名稱搜尋"
@@ -547,7 +548,12 @@ const getLocationLabel = (code: string | null) => {
       </div>
 
       <div v-else-if="!hasSearched" class="p-8 text-center rounded-b-xl overflow-hidden">
-        <p class="text-slate-500">請輸入物料編號或物料名稱搜尋以顯示維修記錄</p>
+        <div class="mx-auto max-w-sm py-8">
+          <svg class="mx-auto mb-4 h-10 w-10 text-slate-400" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="10" cy="10" r="6" /><path d="m15 15 6 6" /></svg>
+          <p class="font-semibold text-slate-700">先選擇要查詢的物料</p>
+          <p class="mt-2 text-sm leading-7 text-slate-500">在上方輸入物料編號或名稱，再從下拉清單選取物料，即可查看維修記錄。</p>
+          <p class="mt-3 text-xs text-slate-500">需要登錄新資料？點選「新增維修記錄」。</p>
+        </div>
       </div>
 
       <div v-else-if="filteredEquipmentRecords.length === 0" class="p-8 text-center rounded-b-xl overflow-hidden">

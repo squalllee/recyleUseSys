@@ -699,8 +699,10 @@ onMounted(loadDevices)
         <input
           v-model="keyword"
           type="search"
+          aria-label="搜尋已載入的可修件"
+          aria-describedby="device-search-help"
           placeholder="搜尋 ID、名稱、料號或序號"
-          class="w-64 rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          class="w-full sm:w-64 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
         />
         <button
           type="button"
@@ -715,16 +717,21 @@ onMounted(loadDevices)
       </div>
     </div>
 
-    <p v-if="errorMessage" class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+    <p v-if="errorMessage" role="alert" class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
       {{ errorMessage }}
     </p>
 
     <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div class="border-b border-slate-200 bg-slate-50/50 px-4 py-3 text-sm text-slate-600">
-        已載入 {{ devices.length }} 筆，目前顯示 {{ visibleDevices.length }} 筆（展開節點時才載入下層）
+      <div id="device-search-help" class="border-b border-slate-200 bg-slate-50/50 px-4 py-3 text-sm text-slate-600" aria-live="polite">
+        已載入 {{ devices.length }} 筆 · 目前顯示 {{ visibleDevices.length }} 筆
+        <p class="mt-1 text-xs text-slate-500">搜尋範圍為已載入資料；請先展開設備節點，再搜尋下層可修件。</p>
       </div>
       <div v-if="loading" class="p-8 text-center text-slate-500 animate-pulse">載入中…</div>
-      <div v-else-if="filteredDevices.length === 0" class="p-8 text-center text-slate-500">查無資料</div>
+      <div v-else-if="visibleDevices.length === 0" class="p-8 text-center text-slate-500">
+        <p class="font-medium text-slate-700">{{ keyword ? '沒有符合搜尋條件的可修件' : '目前沒有可修件資料' }}</p>
+        <p class="mt-2 text-sm">{{ keyword ? '請調整關鍵字，或清除搜尋後展開設備節點。' : '點選「新增可修件」建立第一筆資料。' }}</p>
+        <button v-if="keyword" type="button" class="mt-4 rounded-lg border border-slate-300 px-4 py-2 text-sm text-blue-700" @click="keyword = ''">清除搜尋</button>
+      </div>
       <div v-else class="overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-200">
           <thead class="bg-slate-50">

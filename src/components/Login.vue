@@ -28,6 +28,7 @@ onMounted(() => {
 })
 
 const handleSubmit = async () => {
+  if (isLoading.value) return
   errorMessage.value = ''
 
   if (!email.value || !password.value) {
@@ -56,11 +57,9 @@ const handleSubmit = async () => {
       auth.login({ ...(result.user_info ?? { TMNAME: email.value, JOBName: '' }), KEYNO: email.value })
       router.push(redirectPath.value)
     } else {
-      alert(result.message || '帳號或密碼錯誤')
       errorMessage.value = result.message || '登入失敗，請重試'
     }
   } catch {
-    alert('系統連線異常，請稍後再試')
     errorMessage.value = '系統連線異常，請稍後再試'
   } finally {
     isLoading.value = false
@@ -69,7 +68,7 @@ const handleSubmit = async () => {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 p-4">
+  <div class="login-page min-h-screen flex items-center justify-center p-4">
     <!-- Background decoration -->
     <div class="fixed inset-0 overflow-hidden pointer-events-none">
       <div class="absolute -top-40 -right-40 w-80 h-80 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
@@ -78,10 +77,10 @@ const handleSubmit = async () => {
 
     <!-- Login Card -->
     <div class="w-full max-w-md relative">
-      <div class="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-white/50 backdrop-blur-xl p-8 space-y-8">
+      <div class="login-card bg-white p-8 space-y-8">
         <!-- Logo -->
         <div class="flex justify-center mb-2">
-          <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30">
+          <div class="login-mark w-16 h-16 flex items-center justify-center text-white">
             <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
@@ -90,9 +89,9 @@ const handleSubmit = async () => {
 
         <!-- Header -->
         <div class="space-y-2 text-center">
-          <h2 class="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+          <h1 class="login-title text-2xl font-bold">
             可修件管理系統
-          </h2>
+          </h1>
           <p class="text-sm text-slate-500">歡迎回來，請登入您的帳號</p>
         </div>
 
@@ -105,7 +104,7 @@ const handleSubmit = async () => {
         </div>
 
         <!-- Form -->
-        <form class="space-y-5" @submit.prevent="handleSubmit" novalidate>
+        <form class="space-y-5" :aria-busy="isLoading" @submit.prevent="handleSubmit">
           <!-- Email Field -->
           <div class="space-y-2">
             <label for="email" class="block text-sm font-medium text-slate-700">
@@ -122,6 +121,7 @@ const handleSubmit = async () => {
                 v-model="email"
                 type="text"
                 autocomplete="username"
+                :disabled="isLoading"
                 required
                 class="block w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 focus:bg-white transition-all duration-200"
                 placeholder="請輸入帳號"
@@ -145,6 +145,7 @@ const handleSubmit = async () => {
                 v-model="password"
                 :type="showPassword ? 'text' : 'password'"
                 autocomplete="current-password"
+                :disabled="isLoading"
                 required
                 class="block w-full pl-11 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 focus:bg-white transition-all duration-200"
                 placeholder="請輸入密碼"
@@ -154,6 +155,7 @@ const handleSubmit = async () => {
                 @click="showPassword = !showPassword"
                 class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                 :aria-label="showPassword ? '隱藏密碼' : '顯示密碼'"
+                :aria-pressed="showPassword"
               >
                 <svg v-if="!showPassword" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />

@@ -179,7 +179,7 @@ onMounted(loadItems)
     <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
       <div>
         <h2 class="text-xl font-bold text-slate-900">{{ config.title }}</h2>
-        <p class="mt-1 text-sm text-slate-500">共 {{ items.length }} 筆資料</p>
+        <p class="mt-1 text-sm text-slate-500">管理維修作業使用的選項與顯示順序 · 共 {{ items.length }} 筆資料</p>
       </div>
       <button
         type="button"
@@ -189,12 +189,13 @@ onMounted(loadItems)
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
         </svg>
-        新增
+        新增{{ config.title }}
       </button>
     </div>
 
     <p
       v-if="errorMessage"
+      role="alert"
       class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
     >
       {{ errorMessage }}
@@ -202,7 +203,10 @@ onMounted(loadItems)
 
     <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <div v-if="loading" class="p-8 text-center text-slate-500 animate-pulse">載入中...</div>
-      <div v-else-if="items.length === 0" class="p-8 text-center text-slate-500">尚無資料</div>
+      <div v-else-if="items.length === 0" class="p-8 text-center text-slate-500">
+        <p class="font-medium text-slate-700">尚未建立{{ config.title }}</p>
+        <p class="mt-2 text-sm">點選上方新增按鈕，建立維修作業需要的選項。</p>
+      </div>
       <div v-else class="overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-200">
           <thead class="bg-slate-50">
