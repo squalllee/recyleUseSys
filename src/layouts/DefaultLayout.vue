@@ -9,6 +9,7 @@ const menuOpen = ref(false)
 const groups = [
   { label: '工作空間', links: [
     { to: '/', label: '工作首頁', icon: 'M3 10l9-7 9 7M5 9v12h5v-7h4v7h5V9' },
+    { to: '/location-maintenance', label: '位置維護作業', icon: 'M12 21s7-5.1 7-12a7 7 0 0 1-14 0c0 6.9 7 12 7 12zm0-9a2 2 0 1 0 0-4 2 2 0 0 0 0 4z' },
     { to: '/repairable-devices', label: '可修件資料維護', icon: 'M4 7l8-4 8 4v10l-8 4-8-4V7zm0 0l8 4 8-4m-8 4v10' },
     { to: '/maintenance-records', label: '維修記錄維護', icon: 'M9 5H5v16h14V5h-4M9 3h6v4H9V3zm0 9h6m-6 4h6' },
   ] },
@@ -63,7 +64,7 @@ const handleLogout = () => {
               {{ link.label }}
             </RouterLink>
           </div>
-          <div class="sidebar-note"><span class="note-label">作業小提醒</span><p>先建立可修件資料，再透過維修記錄追蹤檢修與完工資訊。</p></div>
+          <div class="sidebar-note"><span class="note-label">作業小提醒</span><p>先建立位置，再新增可修件資料，最後透過維修記錄追蹤檢修與完工資訊。</p></div>
         </nav>
       </aside>
       <main id="main-content" class="main-content" tabindex="-1">

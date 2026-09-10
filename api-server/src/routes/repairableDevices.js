@@ -1,6 +1,6 @@
 const express = require('express');
 const mssql = require('mssql');
-const { connectDB } = require('../server');
+const { connectDB, connectWMSDB } = require('../server');
 
 const router = express.Router();
 
@@ -24,6 +24,39 @@ function optionalText(value, fieldName, maxLength) {
     throw error;
   }
   return text;
+}
+
+async function validateSystemSelection(type, system, subSystem) {
+  if (type === 'parts' && (!system || !subSystem)) {
+    const error = new Error('零件必須選擇系統與子系統');
+    error.statusCode = 400;
+    throw error;
+  }
+  if (Boolean(system) !== Boolean(subSystem)) {
+    const error = new Error('系統與子系統必須一起選擇');
+    error.statusCode = 400;
+    throw error;
+  }
+  if (!system) return;
+
+  const pool = await connectWMSDB();
+  const result = await pool.request()
+    .input('SystemId', mssql.NVarChar(5), system)
+    .input('SubSystemId', mssql.NVarChar(5), subSystem)
+    .query(`
+      SELECT TOP 1 1 AS IsValid
+      FROM MainSystem
+      INNER JOIN SubSystem
+        ON SubSystem.SystemId = MainSystem.SystemId
+      WHERE MainSystem.SystemId = @SystemId
+        AND SubSystem.SubSystemId = @SubSystemId
+    `);
+
+  if (result.recordset.length === 0) {
+    const error = new Error('選擇的系統或子系統不存在於 WMS_V1');
+    error.statusCode = 400;
+    throw error;
+  }
 }
 
 function sendError(res, error, operation) {
@@ -101,6 +134,88 @@ router.get('/repairable-devices', async (req, res) => {
   }
 });
 
+router.get('/repairable-device-location-map', async (req, res) => {
+  try {
+    const type = requiredText(req.query.type, '可修件類別', 20);
+    const system = optionalText(req.query.system, '系統', 5);
+    const subSystem = optionalText(req.query.subSystem, '子系統', 5);
+    const excludeDeviceID = optionalText(req.query.excludeDeviceId, '排除的 DeviceID', 64);
+    if (!['Device', 'parts'].includes(type)) {
+      return res.status(400).json({ error: '可修件類別只能選擇「設備」或「零件」' });
+    }
+    if (Boolean(system) !== Boolean(subSystem)) {
+      return res.status(400).json({ error: '系統與子系統必須一起選擇' });
+    }
+
+    const pool = await connectDB();
+    const result = await pool.request()
+      .input('Type', mssql.VarChar(20), type)
+      .input('System', mssql.NVarChar(5), system)
+      .input('SubSystem', mssql.NVarChar(5), subSystem)
+      .input('ExcludeDeviceID', mssql.VarChar(64), excludeDeviceID)
+      .query(`
+        ;WITH MatchingNodes AS
+        (
+          SELECT DeviceID, CurrentLocationDeviceID
+          FROM dbo.RepairableDevices
+          WHERE @System IS NOT NULL
+            AND [System] = @System
+            AND [SubSystem] = @SubSystem
+        ),
+        Ancestors AS
+        (
+          SELECT DeviceID, CurrentLocationDeviceID
+          FROM MatchingNodes
+
+          UNION ALL
+
+          SELECT parent.DeviceID, parent.CurrentLocationDeviceID
+          FROM dbo.RepairableDevices AS parent
+          INNER JOIN Ancestors AS child
+            ON parent.DeviceID = child.CurrentLocationDeviceID
+        ),
+        IncludedNodes AS
+        (
+          SELECT DeviceID
+          FROM dbo.RepairableDevices
+          WHERE [Type] = 'location'
+
+          UNION
+
+          SELECT DeviceID
+          FROM Ancestors
+        )
+        SELECT DISTINCT
+          device.DeviceID,
+          device.DeviceName,
+          device.MaterialNo,
+          device.SerialNumber,
+          device.CurrentLocationDeviceID,
+          device.[Type],
+          device.[System],
+          device.[SubSystem],
+          CAST(CASE
+            WHEN @System IS NOT NULL
+             AND device.[System] = @System
+             AND device.[SubSystem] = @SubSystem THEN 1
+            ELSE 0
+          END AS BIT) AS MatchesClassification,
+          CAST(CASE
+            WHEN device.DeviceID = @ExcludeDeviceID THEN 0
+            ELSE 1
+          END AS BIT) AS CanSelect
+        FROM dbo.RepairableDevices AS device
+        INNER JOIN IncludedNodes AS included
+          ON included.DeviceID = device.DeviceID
+        ORDER BY device.DeviceID
+        OPTION (MAXRECURSION 100)
+      `);
+    res.json(result.recordset);
+  } catch (error) {
+    sendError(res, error, 'fetching location mind map for');
+  }
+});
+
 router.get('/repairable-devices/:deviceId', async (req, res) => {
   try {
     const pool = await connectDB();
@@ -119,29 +234,104 @@ router.get('/repairable-devices/:deviceId', async (req, res) => {
   }
 });
 
+// Root nodes represent maintainable locations. Keep their write operations
+// separate from repairable-device creation so the workflows cannot be mixed.
+router.post('/repairable-locations', async (req, res) => {
+  try {
+    const deviceID = requiredText(req.body.DeviceID, '位置代碼', 64);
+    const deviceName = requiredText(req.body.DeviceName, '位置名稱', 100);
+    const pool = await connectDB();
+    const result = await pool.request()
+      .input('DeviceID', mssql.VarChar(64), deviceID)
+      .input('DeviceName', mssql.NVarChar(100), deviceName)
+      .query(`
+        INSERT INTO dbo.RepairableDevices
+          (DeviceID, DeviceName, MaterialNo, SerialNumber, CurrentLocationDeviceID, [Type])
+        OUTPUT INSERTED.*
+        VALUES (@DeviceID, @DeviceName, NULL, NULL, NULL, 'location')
+      `);
+    res.status(201).json(result.recordset[0]);
+  } catch (error) {
+    sendError(res, error, 'creating location');
+  }
+});
+
+router.put('/repairable-locations/:deviceId', async (req, res) => {
+  try {
+    const deviceID = requiredText(req.params.deviceId, '位置代碼', 64);
+    const deviceName = requiredText(req.body.DeviceName, '位置名稱', 100);
+    const pool = await connectDB();
+    const result = await pool.request()
+      .input('DeviceID', mssql.VarChar(64), deviceID)
+      .input('DeviceName', mssql.NVarChar(100), deviceName)
+      .query(`
+        UPDATE dbo.RepairableDevices
+        SET DeviceName = @DeviceName,
+            UpdatedAt = SYSUTCDATETIME()
+        OUTPUT INSERTED.*
+        WHERE DeviceID = @DeviceID
+          AND CurrentLocationDeviceID IS NULL
+      `);
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ error: '找不到指定的位置' });
+    }
+    res.json(result.recordset[0]);
+  } catch (error) {
+    sendError(res, error, 'updating location');
+  }
+});
+
+router.delete('/repairable-locations/:deviceId', async (req, res) => {
+  try {
+    const deviceID = requiredText(req.params.deviceId, '位置代碼', 64);
+    const pool = await connectDB();
+    await pool.request()
+      .input('DeviceID', mssql.VarChar(64), deviceID)
+      .query(`
+        IF NOT EXISTS (
+          SELECT 1 FROM dbo.RepairableDevices
+          WHERE DeviceID = @DeviceID AND CurrentLocationDeviceID IS NULL
+        )
+          THROW 50013, '找不到指定的位置', 1;
+        IF EXISTS (SELECT 1 FROM dbo.RepairableDevices WHERE CurrentLocationDeviceID = @DeviceID)
+          THROW 50004, '此位置仍有下層資料，請先移動或刪除下層可修件', 1;
+        DELETE FROM dbo.RepairableDevices WHERE DeviceID = @DeviceID;
+      `);
+    res.status(204).send();
+  } catch (error) {
+    if (error.number === 50004) error.statusCode = 409;
+    if (error.number === 50013) error.statusCode = 404;
+    sendError(res, error, 'deleting location');
+  }
+});
+
 router.post('/repairable-devices', async (req, res) => {
   try {
-    // Root nodes may provide their own DeviceID. For every other node the
-    // server generates the ID from the selected parent/material.
-    const requestedDeviceID = optionalText(req.body.DeviceID, 'DeviceID', 64);
     const deviceName = requiredText(req.body.DeviceName, '設備名稱', 100);
     const materialNo = optionalText(req.body.MaterialNo, '料號', 50);
     const serialNumber = optionalText(req.body.SerialNumber, '序號', 50);
     const currentLocationDeviceID = optionalText(req.body.CurrentLocationDeviceID, '目前位置', 64);
-    if (!currentLocationDeviceID && !requestedDeviceID) {
-      return res.status(400).json({ error: '根節點必須輸入 DeviceID' });
+    const type = requiredText(req.body.Type, '可修件類別', 20);
+    const system = optionalText(req.body.System, '系統', 5);
+    const subSystem = optionalText(req.body.SubSystem, '子系統', 5);
+    if (!currentLocationDeviceID) {
+      return res.status(400).json({ error: '新增可修件必須選擇目前位置；根節點請至位置維護作業新增' });
     }
-    if (requestedDeviceID && requestedDeviceID === currentLocationDeviceID) {
-      return res.status(400).json({ error: '目前位置不可選擇自己' });
+    if (!materialNo) return res.status(400).json({ error: '新增可修件必須先選取料號' });
+    if (!['Device', 'parts'].includes(type)) {
+      return res.status(400).json({ error: '可修件類別只能選擇「設備」或「零件」' });
     }
+    await validateSystemSelection(type, system, subSystem);
 
     const pool = await connectDB();
     const result = await pool.request()
-      .input('RequestedDeviceID', mssql.VarChar(64), requestedDeviceID)
       .input('DeviceName', mssql.NVarChar(100), deviceName)
       .input('MaterialNo', mssql.VarChar(50), materialNo)
       .input('SerialNumber', mssql.VarChar(50), serialNumber)
       .input('CurrentLocationDeviceID', mssql.VarChar(64), currentLocationDeviceID)
+      .input('Type', mssql.VarChar(20), type)
+      .input('System', mssql.NVarChar(5), system)
+      .input('SubSystem', mssql.NVarChar(5), subSystem)
       .query(`
         SET XACT_ABORT ON;
         BEGIN TRANSACTION;
@@ -149,42 +339,34 @@ router.post('/repairable-devices', async (req, res) => {
           DECLARE @GeneratedDeviceID VARCHAR(64);
           DECLARE @NextNumber INT;
 
-          IF @CurrentLocationDeviceID IS NOT NULL
-             AND NOT EXISTS (SELECT 1 FROM dbo.RepairableDevices WHERE DeviceID = @CurrentLocationDeviceID)
-            THROW 50001, '目前位置不存在', 1;
+          IF NOT EXISTS (
+            SELECT 1
+            FROM dbo.RepairableDevices
+            WHERE DeviceID = @CurrentLocationDeviceID
+          )
+            THROW 50014, '目前位置不存在', 1;
 
-          IF @CurrentLocationDeviceID IS NULL
-          BEGIN
-            IF @RequestedDeviceID IS NULL
-              THROW 50006, '根節點必須輸入 DeviceID', 1;
-            SET @GeneratedDeviceID = @RequestedDeviceID;
-          END
-          ELSE
-          BEGIN
-            IF @MaterialNo IS NULL
-              THROW 50012, '非根節點必須先選取料號', 1;
+          SELECT @NextNumber = ISNULL(MAX(TRY_CONVERT(INT, RIGHT(DeviceID, 4))), 0) + 1
+          FROM dbo.RepairableDevices WITH (TABLOCKX)
+          WHERE MaterialNo = @MaterialNo
+            AND LEN(DeviceID) = LEN(@MaterialNo) + 5
+            AND LEFT(DeviceID, LEN(@MaterialNo) + 1) = @MaterialNo + '_'
+            AND TRY_CONVERT(INT, RIGHT(DeviceID, 4)) IS NOT NULL;
 
-            SELECT @NextNumber = ISNULL(MAX(TRY_CONVERT(INT, RIGHT(DeviceID, 4))), 0) + 1
-            FROM dbo.RepairableDevices WITH (TABLOCKX)
-            WHERE MaterialNo = @MaterialNo
-              AND LEN(DeviceID) = LEN(@MaterialNo) + 5
-              AND LEFT(DeviceID, LEN(@MaterialNo) + 1) = @MaterialNo + '_'
-              AND TRY_CONVERT(INT, RIGHT(DeviceID, 4)) IS NOT NULL;
+          IF @NextNumber > 9999
+            THROW 50009, '同料號的 DeviceID 已超過四碼流水號上限', 1;
 
-            IF @NextNumber > 9999
-              THROW 50009, '同料號的 DeviceID 已超過四碼流水號上限', 1;
-
-            SET @GeneratedDeviceID = CONCAT(
-              @MaterialNo, '_', RIGHT('0000' + CONVERT(VARCHAR(4), @NextNumber), 4)
-            );
-          END;
+          SET @GeneratedDeviceID = CONCAT(
+            @MaterialNo, '_', RIGHT('0000' + CONVERT(VARCHAR(4), @NextNumber), 4)
+          );
 
           INSERT INTO dbo.RepairableDevices
-            (DeviceID, DeviceName, MaterialNo, SerialNumber, CurrentLocationDeviceID)
+            (DeviceID, DeviceName, MaterialNo, SerialNumber, CurrentLocationDeviceID,
+             [Type], [System], [SubSystem])
           OUTPUT INSERTED.*
           VALUES (
             @GeneratedDeviceID, @DeviceName, @MaterialNo,
-            @SerialNumber, @CurrentLocationDeviceID
+            @SerialNumber, @CurrentLocationDeviceID, @Type, @System, @SubSystem
           );
 
           COMMIT TRANSACTION;
@@ -196,7 +378,7 @@ router.post('/repairable-devices', async (req, res) => {
       `);
     res.status(201).json(result.recordset[0]);
   } catch (error) {
-    if ([50001, 50006, 50009, 50012].includes(error.number)) error.statusCode = 400;
+    if ([50001, 50009, 50014].includes(error.number)) error.statusCode = 400;
     sendError(res, error, 'creating');
   }
 });
@@ -208,7 +390,14 @@ router.put('/repairable-devices/:deviceId', async (req, res) => {
     const materialNo = optionalText(req.body.MaterialNo, '料號', 50);
     const serialNumber = optionalText(req.body.SerialNumber, '序號', 50);
     const currentLocationDeviceID = optionalText(req.body.CurrentLocationDeviceID, '目前位置', 64);
+    const type = requiredText(req.body.Type, '可修件類別', 20);
+    const system = optionalText(req.body.System, '系統', 5);
+    const subSystem = optionalText(req.body.SubSystem, '子系統', 5);
     if (deviceID === currentLocationDeviceID) return res.status(400).json({ error: '目前位置不可選擇自己' });
+    if (!['Device', 'parts'].includes(type)) {
+      return res.status(400).json({ error: '可修件類別只能選擇「設備」或「零件」' });
+    }
+    await validateSystemSelection(type, system, subSystem);
 
     const pool = await connectDB();
     const result = await pool.request()
@@ -217,12 +406,19 @@ router.put('/repairable-devices/:deviceId', async (req, res) => {
       .input('MaterialNo', mssql.VarChar(50), materialNo)
       .input('SerialNumber', mssql.VarChar(50), serialNumber)
       .input('CurrentLocationDeviceID', mssql.VarChar(64), currentLocationDeviceID)
+      .input('Type', mssql.VarChar(20), type)
+      .input('System', mssql.NVarChar(5), system)
+      .input('SubSystem', mssql.NVarChar(5), subSystem)
       .query(`
         IF NOT EXISTS (SELECT 1 FROM dbo.RepairableDevices WHERE DeviceID = @DeviceID)
           THROW 50002, '找不到指定的可修件資料', 1;
         IF @CurrentLocationDeviceID IS NOT NULL
-           AND NOT EXISTS (SELECT 1 FROM dbo.RepairableDevices WHERE DeviceID = @CurrentLocationDeviceID)
-          THROW 50001, '目前位置不存在', 1;
+           AND NOT EXISTS (
+             SELECT 1
+             FROM dbo.RepairableDevices
+             WHERE DeviceID = @CurrentLocationDeviceID
+           )
+          THROW 50014, '目前位置不存在', 1;
         IF @CurrentLocationDeviceID IS NOT NULL
         BEGIN
           ;WITH Descendants AS
@@ -240,13 +436,16 @@ router.put('/repairable-devices/:deviceId', async (req, res) => {
         SET DeviceName = @DeviceName, MaterialNo = @MaterialNo,
             SerialNumber = @SerialNumber,
             CurrentLocationDeviceID = @CurrentLocationDeviceID,
+            [Type] = @Type,
+            [System] = @System,
+            [SubSystem] = @SubSystem,
             UpdatedAt = SYSUTCDATETIME()
         OUTPUT INSERTED.*
         WHERE DeviceID = @DeviceID
       `);
     res.json(result.recordset[0]);
   } catch (error) {
-    if (error.number === 50001 || error.number === 50003) error.statusCode = 400;
+    if ([50001, 50003, 50014].includes(error.number)) error.statusCode = 400;
     if (error.number === 50002) error.statusCode = 404;
     sendError(res, error, 'updating');
   }

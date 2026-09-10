@@ -29,6 +29,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../pages/MaintTypeMaintenance.vue'),
       },
       {
+        path: 'location-maintenance',
+        name: 'LocationMaintenance',
+        component: () => import('../pages/LocationMaintenance.vue'),
+      },
+      {
         path: 'repairable-devices',
         name: 'RepairableDevices',
         component: () => import('../pages/RepairableDevices.vue'),

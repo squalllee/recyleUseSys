@@ -140,6 +140,69 @@ export async function getRepairableDeviceSubtree(deviceID: string) {
   return handleResponse<RepairableDevice[]>(response);
 }
 
+export async function getRepairableLocationMap(
+  type: 'Device' | 'parts',
+  system: string | null,
+  subSystem: string | null,
+  excludeDeviceID?: string
+) {
+  const query = new URLSearchParams({ type });
+  if (system) query.set('system', system);
+  if (subSystem) query.set('subSystem', subSystem);
+  if (excludeDeviceID) query.set('excludeDeviceId', excludeDeviceID);
+  const response = await fetch(`${API_BASE_URL}/repairable-device-location-map?${query}`);
+  return handleResponse<RepairableLocationMapNode[]>(response);
+}
+
+export async function getMainSystems() {
+  const response = await fetch(`${API_BASE_URL}/materials/main-systems`);
+  return handleResponse<MainSystem[]>(response);
+}
+
+export async function getSubSystems(systemID: string) {
+  const response = await fetch(
+    `${API_BASE_URL}/materials/main-systems/${encodeURIComponent(systemID)}/sub-systems`
+  );
+  return handleResponse<WmsSubSystem[]>(response);
+}
+
+export interface RepairableLocationInput {
+  DeviceID: string;
+  DeviceName: string;
+}
+
+export async function createRepairableLocation(data: RepairableLocationInput) {
+  const response = await fetch(`${API_BASE_URL}/repairable-locations`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return handleResponse<RepairableDevice>(response);
+}
+
+export async function updateRepairableLocation(deviceID: string, deviceName: string) {
+  const response = await fetch(
+    `${API_BASE_URL}/repairable-locations/${encodeURIComponent(deviceID)}`,
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ DeviceName: deviceName }),
+    }
+  );
+  return handleResponse<RepairableDevice>(response);
+}
+
+export async function deleteRepairableLocation(deviceID: string) {
+  const response = await fetch(
+    `${API_BASE_URL}/repairable-locations/${encodeURIComponent(deviceID)}`,
+    { method: 'DELETE' }
+  );
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `刪除失敗：${response.status}`);
+  }
+}
+
 export async function createRepairableDevice(data: RepairableDeviceInput) {
   const response = await fetch(`${API_BASE_URL}/repairable-devices`, {
     method: 'POST',
@@ -150,6 +213,9 @@ export async function createRepairableDevice(data: RepairableDeviceInput) {
       MaterialNo: data.MaterialNo,
       SerialNumber: data.SerialNumber,
       CurrentLocationDeviceID: data.CurrentLocationDeviceID,
+      Type: data.Type,
+      System: data.System,
+      SubSystem: data.SubSystem,
     }),
   });
   return handleResponse<RepairableDevice>(response);
@@ -164,6 +230,9 @@ export async function updateRepairableDevice(deviceID: string, data: RepairableD
       MaterialNo: data.MaterialNo,
       SerialNumber: data.SerialNumber,
       CurrentLocationDeviceID: data.CurrentLocationDeviceID,
+      Type: data.Type,
+      System: data.System,
+      SubSystem: data.SubSystem,
     }),
   });
   return handleResponse<RepairableDevice>(response);
@@ -355,15 +424,43 @@ export interface RepairableDeviceInput {
   MaterialNo: string | null;
   SerialNumber: string | null;
   CurrentLocationDeviceID: string | null;
+  Type: 'Device' | 'parts';
+  System: string | null;
+  SubSystem: string | null;
 }
 
-export interface RepairableDevice extends RepairableDeviceInput {
+export interface RepairableDevice extends Omit<RepairableDeviceInput, 'Type'> {
+  Type: 'location' | 'Device' | 'parts';
   CreatedAt: string;
   UpdatedAt: string;
   HierarchyLevel: number;
   HierarchyPath: string;
   CurrentLocationDeviceName: string | null;
   HasChildren: boolean;
+}
+
+export interface MainSystem {
+  SystemId: string;
+  SystemName: string | null;
+}
+
+export interface WmsSubSystem {
+  SystemId: string;
+  SubSystemId: string;
+  SubSystemName: string | null;
+}
+
+export interface RepairableLocationMapNode {
+  DeviceID: string;
+  DeviceName: string;
+  MaterialNo: string | null;
+  SerialNumber: string | null;
+  CurrentLocationDeviceID: string | null;
+  Type: 'location' | 'Device' | 'parts';
+  System: string | null;
+  SubSystem: string | null;
+  MatchesClassification: boolean;
+  CanSelect: boolean;
 }
 
 export interface Location {

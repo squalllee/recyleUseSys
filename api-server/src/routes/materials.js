@@ -3,6 +3,44 @@ const router = express.Router();
 const mssql = require('mssql');
 const { connectWMSDB } = require('../server');
 
+router.get('/main-systems', async (_req, res) => {
+  try {
+    const pool = await connectWMSDB();
+    const result = await pool.request().query(`
+      SELECT
+        SystemId,
+        RTRIM(SystemName) AS SystemName
+      FROM MainSystem
+      ORDER BY SystemId
+    `);
+    res.json(result.recordset);
+  } catch (error) {
+    console.error('Error fetching main systems:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/main-systems/:systemId/sub-systems', async (req, res) => {
+  try {
+    const pool = await connectWMSDB();
+    const result = await pool.request()
+      .input('SystemId', mssql.NVarChar(5), req.params.systemId)
+      .query(`
+        SELECT
+          SystemId,
+          SubSystemId,
+          RTRIM(SubSystemName) AS SubSystemName
+        FROM SubSystem
+        WHERE SystemId = @SystemId
+        ORDER BY SubSystemId
+      `);
+    res.json(result.recordset);
+  } catch (error) {
+    console.error('Error fetching sub systems:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get material basic data with optional fuzzy search by MaterialNo / MaterialName.
 // The result is intentionally kept compatible with MaterialNoSelect.vue.
 router.get('/', async (req, res) => {
