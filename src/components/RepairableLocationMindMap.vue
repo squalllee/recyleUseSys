@@ -72,10 +72,10 @@ const graph = computed(() => {
   roots.sort(compare)
   for (const children of childrenByID.values()) children.sort(compare)
 
-  const columnGap = 88
-  const rowGap = 42
-  const nodeHalfWidth = 16
-  const nodeHalfHeight = 16
+  const columnGap = 320
+  const rowGap = 128
+  const nodeHalfWidth = 120
+  const nodeHalfHeight = 46
   const marginX = 48
   const marginY = 48
   const placed: GraphNode[] = []
@@ -103,6 +103,8 @@ const graph = computed(() => {
   }
 
   for (const root of roots) place(root, 0)
+
+  if (!placed.length) return null
 
   const minX = Math.min(...placed.map((node) => node.x - nodeHalfWidth))
   const maxX = Math.max(...placed.map((node) => node.x + nodeHalfWidth))
@@ -176,7 +178,8 @@ const locateSearchResult = async (node: RepairableLocationMapNode) => {
   const candidates = mapViewport.value?.querySelectorAll<HTMLElement>('[data-mind-map-device-id]')
   const target = Array.from(candidates || [])
     .find((element) => element.dataset.mindMapDeviceId === node.DeviceID)
-  target?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' })
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  target?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'center', inline: 'center' })
   target?.querySelector<HTMLButtonElement>('[data-primary-node]')?.focus({ preventScroll: true })
 }
 
@@ -214,15 +217,16 @@ onMounted(loadMap)
 <template>
   <div class="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/60 p-4" role="dialog" aria-modal="true" aria-labelledby="location-map-title">
     <button type="button" class="fixed inset-0 cursor-default" aria-label="關閉目前位置心智圖" @click="emit('close')"></button>
-    <div class="relative z-10 flex max-h-[92vh] w-full max-w-7xl flex-col overflow-hidden rounded-2xl bg-slate-50 shadow-2xl">
+    <div class="relative z-10 flex h-[88dvh] max-h-[960px] w-full max-w-7xl flex-col overflow-hidden rounded-2xl border border-white/60 bg-[#f7f6f2] shadow-2xl">
       <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-6 py-4">
         <div>
-          <h3 id="location-map-title" class="text-lg font-semibold text-slate-900">選擇目前位置</h3>
+          <p class="mb-1 text-xs font-medium tracking-wider text-blue-700">位置心智圖</p>
+          <h3 id="location-map-title" class="text-xl font-semibold text-slate-900">選擇目前位置</h3>
           <p class="mt-1 text-sm text-slate-500">
             <template v-if="system && subSystem">系統 {{ system }} · 子系統 {{ subSystem }}</template>
             <template v-else>未指定系統分類，顯示可用位置</template>
           </p>
-          <p class="mt-1 text-xs text-slate-400">可用名稱或 DeviceID 搜尋；預設展開至第二層，使用圓點旁的＋／－逐層展開或收合。</p>
+          <p class="mt-2 text-xs leading-5 text-slate-600">點選卡片設定位置，使用右側＋／−瀏覽下層。也可以搜尋名稱或 DeviceID 快速定位。</p>
         </div>
         <button type="button" class="rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-900" @click="emit('close')">關閉</button>
       </div>
@@ -284,7 +288,7 @@ onMounted(loadMap)
         </div>
       </div>
 
-      <div ref="mapViewport" class="min-h-0 flex-1 overflow-auto p-6">
+      <div ref="mapViewport" class="mind-map-canvas min-h-0 flex-1 overflow-auto p-3 sm:p-6">
         <div v-if="loading" class="flex min-h-[360px] items-center justify-center text-slate-500">
           <div class="text-center">
             <svg class="mx-auto h-8 w-8 animate-spin text-blue-600" fill="none" viewBox="0 0 24 24">
@@ -294,41 +298,50 @@ onMounted(loadMap)
             <p class="mt-3 text-sm">正在載入完整心智圖…</p>
           </div>
         </div>
-        <p v-else-if="errorMessage" class="rounded-lg border border-red-200 bg-red-50 px-4 py-8 text-center text-sm text-red-700">{{ errorMessage }}</p>
-        <div v-else-if="graph" class="min-w-max rounded-xl border border-slate-200 bg-slate-100/70 p-3">
+        <div v-else-if="errorMessage" role="alert" class="rounded-lg border border-red-200 bg-red-50 px-4 py-8 text-center text-sm text-red-700">
+          <p>{{ errorMessage }}</p>
+          <button type="button" class="mt-4 rounded-lg border border-red-300 bg-white px-4 py-2 font-medium" @click="loadMap">重新載入</button>
+        </div>
+        <div v-else-if="graph" class="min-w-max">
           <div class="relative" :style="{ width: `${graph.width}px`, height: `${graph.height}px` }">
             <svg class="pointer-events-none absolute inset-0 h-full w-full" :viewBox="`0 0 ${graph.width} ${graph.height}`" preserveAspectRatio="none" aria-hidden="true">
-              <path v-for="link in graph.links" :key="link.id" :d="link.path" fill="none" stroke="#cbd5e1" stroke-linecap="round" stroke-width="3" />
+              <path v-for="link in graph.links" :key="link.id" :d="link.path" fill="none" stroke="#9bafbd" stroke-linecap="round" stroke-width="2" />
             </svg>
 
             <div
               v-for="node in graph.nodes"
               :key="node.DeviceID"
-              class="group absolute z-10 h-8 w-8 -translate-x-1/2 -translate-y-1/2 hover:z-50"
+              class="group absolute z-10 h-[92px] w-[240px] -translate-x-1/2 -translate-y-1/2 hover:z-20 focus-within:z-20"
               :style="{ left: `${node.x}px`, top: `${node.y}px` }"
               :data-mind-map-device-id="node.DeviceID"
             >
               <button
                 type="button"
                 data-primary-node
-                :disabled="!node.CanSelect"
+                :aria-disabled="!node.CanSelect"
                 :aria-label="`${node.CanSelect ? '選擇' : '查看'}${typeLabel(node)} ${node.DeviceName}`"
-                class="flex h-8 w-8 items-center justify-center rounded-full border text-[11px] font-bold shadow-sm transition"
+                class="flex h-full w-full flex-col justify-center rounded-xl border border-l-4 px-4 py-3 text-left shadow-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600"
                 :class="[
                   node.CanSelect
-                    ? 'cursor-pointer border-blue-500 bg-blue-100 text-blue-700 hover:scale-125 hover:bg-blue-200 hover:shadow-md'
-                    : 'cursor-default border-slate-300 bg-white text-slate-400',
-                  highlightedDeviceID === node.DeviceID ? 'scale-125 ring-4 ring-amber-300 ring-offset-2' : '',
+                    ? 'cursor-pointer border-blue-300 border-l-blue-600 bg-white text-slate-900 hover:border-blue-600 hover:bg-blue-50'
+                    : 'cursor-default border-slate-300 bg-stone-50 text-slate-600',
+                  highlightedDeviceID === node.DeviceID ? 'ring-4 ring-blue-200 ring-offset-2' : '',
                 ]"
                 @click="node.CanSelect && emit('select', node)"
               >
-                {{ nodeSymbol(node) }}
+                <span class="mb-1 flex w-full items-center justify-between gap-2 text-[10px] font-medium">
+                  <span :class="node.CanSelect ? 'text-blue-700' : 'text-slate-600'">{{ typeLabel(node) }}</span>
+                  <span class="text-slate-500">{{ node.CanSelect ? '可選擇' : '路徑節點' }}</span>
+                </span>
+                <span class="block w-full truncate text-sm font-semibold">{{ node.DeviceName }}</span>
+                <span class="mt-1 block w-full truncate font-mono text-xs text-slate-500">{{ node.DeviceID }}</span>
               </button>
 
               <button
                 v-if="node.hasChildren"
                 type="button"
-                class="absolute -bottom-1 -right-1 z-20 flex h-4 w-4 items-center justify-center rounded-full border border-indigo-500 bg-white text-[11px] font-bold leading-none text-indigo-700 shadow hover:bg-indigo-50"
+                class="absolute -right-4 top-1/2 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-blue-200 bg-white text-lg font-medium leading-none text-blue-700 shadow-sm hover:border-blue-500 hover:bg-blue-50"
+                :aria-expanded="expandedIDs.has(node.DeviceID)"
                 :aria-label="expandedIDs.has(node.DeviceID) ? `收合 ${node.DeviceName} 的下層` : `展開 ${node.DeviceName} 的下層`"
                 :title="expandedIDs.has(node.DeviceID) ? '收合下層' : '展開下層'"
                 @click.stop="toggleExpanded(node.DeviceID)"
@@ -355,7 +368,7 @@ onMounted(loadMap)
                   <template v-if="node.SubSystem"><dt class="text-slate-400">子系統</dt><dd>{{ node.SubSystem }}</dd></template>
                 </dl>
                 <p class="mt-1 border-t border-white/15 pt-1" :class="node.CanSelect ? 'text-blue-200' : 'text-slate-400'">
-                  {{ node.CanSelect ? '點擊圓點選擇此節點' : '此節點僅供顯示完整路徑' }}
+                  {{ node.CanSelect ? '點選卡片以設定目前位置' : '此節點僅供顯示完整路徑' }}
                 </p>
                 <span
                   class="absolute border-4 border-transparent"
@@ -370,6 +383,21 @@ onMounted(loadMap)
         </div>
         <p v-else class="py-12 text-center text-slate-500">找不到相同系統與子系統的心智圖資料。</p>
       </div>
+      <div class="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-stone-200 bg-white px-6 py-3 text-xs text-slate-600">
+        <div class="flex items-center gap-4" aria-label="節點圖例">
+          <span class="flex items-center gap-2"><span class="h-3 w-1 rounded bg-blue-600" aria-hidden="true"></span>可選擇位置</span>
+          <span class="flex items-center gap-2"><span class="h-3 w-1 rounded bg-slate-300" aria-hidden="true"></span>路徑節點</span>
+        </div>
+        <span v-if="graph && !loading && !errorMessage">顯示 {{ graph.nodes.length }} / {{ records.length }} 個節點</span>
+      </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.mind-map-canvas {
+  background-image: radial-gradient(#d5d9dc 1px, transparent 1px);
+  background-size: 20px 20px;
+  overscroll-behavior: contain;
+}
+</style>
