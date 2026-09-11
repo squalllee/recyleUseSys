@@ -1,0 +1,22 @@
+SET XACT_ABORT ON;
+
+BEGIN TRANSACTION;
+BEGIN TRY
+    IF OBJECT_ID(N'dbo.EquipmentMaintenanceRecords', N'U') IS NULL
+        THROW 50130, 'dbo.EquipmentMaintenanceRecords does not exist.', 1;
+
+    ALTER TABLE dbo.EquipmentMaintenanceRecords
+        ALTER COLUMN RemovalLocation NVARCHAR(64) NULL;
+
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+    THROW;
+END CATCH;
+
+SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, IS_NULLABLE
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_SCHEMA = 'dbo'
+  AND TABLE_NAME = 'EquipmentMaintenanceRecords'
+  AND COLUMN_NAME = 'RemovalLocation';

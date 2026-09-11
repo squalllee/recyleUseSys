@@ -26,12 +26,7 @@ function optionalText(value, fieldName, maxLength) {
   return text;
 }
 
-async function validateSystemSelection(type, system, subSystem) {
-  if (type === 'parts' && (!system || !subSystem)) {
-    const error = new Error('零件必須選擇系統與子系統');
-    error.statusCode = 400;
-    throw error;
-  }
+async function validateSystemSelection(system, subSystem) {
   if (Boolean(system) !== Boolean(subSystem)) {
     const error = new Error('系統與子系統必須一起選擇');
     error.statusCode = 400;
@@ -136,20 +131,15 @@ router.get('/repairable-devices', async (req, res) => {
 
 router.get('/repairable-device-location-map', async (req, res) => {
   try {
-    const type = requiredText(req.query.type, '可修件類別', 20);
     const system = optionalText(req.query.system, '系統', 5);
     const subSystem = optionalText(req.query.subSystem, '子系統', 5);
     const excludeDeviceID = optionalText(req.query.excludeDeviceId, '排除的 DeviceID', 64);
-    if (!['Device', 'parts'].includes(type)) {
-      return res.status(400).json({ error: '可修件類別只能選擇「設備」或「零件」' });
-    }
     if (Boolean(system) !== Boolean(subSystem)) {
       return res.status(400).json({ error: '系統與子系統必須一起選擇' });
     }
 
     const pool = await connectDB();
     const result = await pool.request()
-      .input('Type', mssql.VarChar(20), type)
       .input('System', mssql.NVarChar(5), system)
       .input('SubSystem', mssql.NVarChar(5), subSystem)
       .input('ExcludeDeviceID', mssql.VarChar(64), excludeDeviceID)
@@ -178,7 +168,7 @@ router.get('/repairable-device-location-map', async (req, res) => {
         (
           SELECT DeviceID
           FROM dbo.RepairableDevices
-          WHERE [Type] = 'location'
+          WHERE CurrentLocationDeviceID IS NULL
 
           UNION
 
@@ -191,7 +181,6 @@ router.get('/repairable-device-location-map', async (req, res) => {
           device.MaterialNo,
           device.SerialNumber,
           device.CurrentLocationDeviceID,
-          device.[Type],
           device.[System],
           device.[SubSystem],
           CAST(CASE
@@ -213,6 +202,34 @@ router.get('/repairable-device-location-map', async (req, res) => {
     res.json(result.recordset);
   } catch (error) {
     sendError(res, error, 'fetching location mind map for');
+  }
+});
+
+router.get('/repairable-devices/search', async (req, res) => {
+  try {
+    const keyword = optionalText(req.query.keyword, '關鍵字', 100);
+    if (!keyword) return res.json([]);
+
+    const pool = await connectDB();
+    const result = await pool.request()
+      .input('Keyword', mssql.NVarChar(100), `%${keyword}%`)
+      .query(`
+        SELECT TOP (50)
+          device.*,
+          parent.DeviceName AS CurrentLocationDeviceName,
+          CAST(0 AS INT) AS HierarchyLevel,
+          CAST('/' + device.DeviceID + '/' AS VARCHAR(MAX)) AS HierarchyPath,
+          CAST(0 AS BIT) AS HasChildren
+        FROM dbo.RepairableDevices AS device
+        LEFT JOIN dbo.RepairableDevices AS parent
+          ON parent.DeviceID = device.CurrentLocationDeviceID
+        WHERE device.CurrentLocationDeviceID IS NOT NULL
+          AND (device.DeviceName LIKE @Keyword OR device.DeviceID LIKE @Keyword)
+        ORDER BY device.DeviceName, device.DeviceID
+      `);
+    res.json(result.recordset);
+  } catch (error) {
+    sendError(res, error, 'searching');
   }
 });
 
@@ -246,9 +263,9 @@ router.post('/repairable-locations', async (req, res) => {
       .input('DeviceName', mssql.NVarChar(100), deviceName)
       .query(`
         INSERT INTO dbo.RepairableDevices
-          (DeviceID, DeviceName, MaterialNo, SerialNumber, CurrentLocationDeviceID, [Type])
+          (DeviceID, DeviceName, MaterialNo, SerialNumber, CurrentLocationDeviceID)
         OUTPUT INSERTED.*
-        VALUES (@DeviceID, @DeviceName, NULL, NULL, NULL, 'location')
+        VALUES (@DeviceID, @DeviceName, NULL, NULL, NULL)
       `);
     res.status(201).json(result.recordset[0]);
   } catch (error) {
@@ -307,29 +324,26 @@ router.delete('/repairable-locations/:deviceId', async (req, res) => {
 
 router.post('/repairable-devices', async (req, res) => {
   try {
-    const deviceName = requiredText(req.body.DeviceName, '設備名稱', 100);
+    const deviceName = requiredText(req.body.DeviceName, '可修件名稱', 100);
     const materialNo = optionalText(req.body.MaterialNo, '料號', 50);
     const serialNumber = optionalText(req.body.SerialNumber, '序號', 50);
+    const purchaseDate = req.body.PurchaseDate || null;
     const currentLocationDeviceID = optionalText(req.body.CurrentLocationDeviceID, '目前位置', 64);
-    const type = requiredText(req.body.Type, '可修件類別', 20);
     const system = optionalText(req.body.System, '系統', 5);
     const subSystem = optionalText(req.body.SubSystem, '子系統', 5);
     if (!currentLocationDeviceID) {
       return res.status(400).json({ error: '新增可修件必須選擇目前位置；根節點請至位置維護作業新增' });
     }
     if (!materialNo) return res.status(400).json({ error: '新增可修件必須先選取料號' });
-    if (!['Device', 'parts'].includes(type)) {
-      return res.status(400).json({ error: '可修件類別只能選擇「設備」或「零件」' });
-    }
-    await validateSystemSelection(type, system, subSystem);
+    await validateSystemSelection(system, subSystem);
 
     const pool = await connectDB();
     const result = await pool.request()
       .input('DeviceName', mssql.NVarChar(100), deviceName)
       .input('MaterialNo', mssql.VarChar(50), materialNo)
       .input('SerialNumber', mssql.VarChar(50), serialNumber)
+      .input('PurchaseDate', mssql.Date, purchaseDate)
       .input('CurrentLocationDeviceID', mssql.VarChar(64), currentLocationDeviceID)
-      .input('Type', mssql.VarChar(20), type)
       .input('System', mssql.NVarChar(5), system)
       .input('SubSystem', mssql.NVarChar(5), subSystem)
       .query(`
@@ -361,12 +375,12 @@ router.post('/repairable-devices', async (req, res) => {
           );
 
           INSERT INTO dbo.RepairableDevices
-            (DeviceID, DeviceName, MaterialNo, SerialNumber, CurrentLocationDeviceID,
-             [Type], [System], [SubSystem])
+            (DeviceID, DeviceName, MaterialNo, SerialNumber, PurchaseDate, CurrentLocationDeviceID,
+             [System], [SubSystem])
           OUTPUT INSERTED.*
           VALUES (
             @GeneratedDeviceID, @DeviceName, @MaterialNo,
-            @SerialNumber, @CurrentLocationDeviceID, @Type, @System, @SubSystem
+            @SerialNumber, @PurchaseDate, @CurrentLocationDeviceID, @System, @SubSystem
           );
 
           COMMIT TRANSACTION;
@@ -386,18 +400,15 @@ router.post('/repairable-devices', async (req, res) => {
 router.put('/repairable-devices/:deviceId', async (req, res) => {
   try {
     const deviceID = requiredText(req.params.deviceId, 'DeviceID', 64);
-    const deviceName = requiredText(req.body.DeviceName, '設備名稱', 100);
+    const deviceName = requiredText(req.body.DeviceName, '可修件名稱', 100);
     const materialNo = optionalText(req.body.MaterialNo, '料號', 50);
     const serialNumber = optionalText(req.body.SerialNumber, '序號', 50);
+    const purchaseDate = req.body.PurchaseDate || null;
     const currentLocationDeviceID = optionalText(req.body.CurrentLocationDeviceID, '目前位置', 64);
-    const type = requiredText(req.body.Type, '可修件類別', 20);
     const system = optionalText(req.body.System, '系統', 5);
     const subSystem = optionalText(req.body.SubSystem, '子系統', 5);
     if (deviceID === currentLocationDeviceID) return res.status(400).json({ error: '目前位置不可選擇自己' });
-    if (!['Device', 'parts'].includes(type)) {
-      return res.status(400).json({ error: '可修件類別只能選擇「設備」或「零件」' });
-    }
-    await validateSystemSelection(type, system, subSystem);
+    await validateSystemSelection(system, subSystem);
 
     const pool = await connectDB();
     const result = await pool.request()
@@ -405,8 +416,8 @@ router.put('/repairable-devices/:deviceId', async (req, res) => {
       .input('DeviceName', mssql.NVarChar(100), deviceName)
       .input('MaterialNo', mssql.VarChar(50), materialNo)
       .input('SerialNumber', mssql.VarChar(50), serialNumber)
+      .input('PurchaseDate', mssql.Date, purchaseDate)
       .input('CurrentLocationDeviceID', mssql.VarChar(64), currentLocationDeviceID)
-      .input('Type', mssql.VarChar(20), type)
       .input('System', mssql.NVarChar(5), system)
       .input('SubSystem', mssql.NVarChar(5), subSystem)
       .query(`
@@ -435,8 +446,8 @@ router.put('/repairable-devices/:deviceId', async (req, res) => {
         UPDATE dbo.RepairableDevices
         SET DeviceName = @DeviceName, MaterialNo = @MaterialNo,
             SerialNumber = @SerialNumber,
+            PurchaseDate = @PurchaseDate,
             CurrentLocationDeviceID = @CurrentLocationDeviceID,
-            [Type] = @Type,
             [System] = @System,
             [SubSystem] = @SubSystem,
             UpdatedAt = SYSUTCDATETIME()

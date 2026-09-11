@@ -489,10 +489,14 @@ router.get('/equipment-maintenance-records', async (req, res) => {
     const result = await pool.request()
       .query(`
         SELECT emr.*,
+               device.DeviceName,
+               device.SerialNumber,
+               device.PurchaseDate,
                mtp.TypeName AS MaintTypeName,
                frp.ReasonName AS FaultReasonName,
                ap.ActionName AS ActionName
         FROM EquipmentMaintenanceRecords emr
+        INNER JOIN RepairableDevices device ON device.DeviceID = emr.DeviceId
         LEFT JOIN MaintTypePhrases mtp ON emr.MaintTypeCode = mtp.MaintTypeID
         LEFT JOIN FaultReasonPhrases frp ON emr.FaultReasonCode = frp.ReasonID
         LEFT JOIN ActionPhrases ap ON emr.ActionCode = CAST(ap.ActionID AS VARCHAR(20))
@@ -505,18 +509,18 @@ router.get('/equipment-maintenance-records', async (req, res) => {
   }
 });
 
-// Check whether a MaterialNo already has an EquipmentMaintenanceRecord
-router.get('/equipment-maintenance-records/exists/:materialNo', async (req, res) => {
+// Check whether a repairable device already has an EquipmentMaintenanceRecord
+router.get('/equipment-maintenance-records/exists/:deviceId', async (req, res) => {
   try {
-    const { materialNo } = req.params;
+    const { deviceId } = req.params;
     const pool = await connectDB();
 
     const result = await pool.request()
-      .input('MaterialNo', mssql.VarChar(13), materialNo)
+      .input('DeviceId', mssql.VarChar(64), deviceId)
       .query(`
         SELECT COUNT(*) AS Cnt
         FROM EquipmentMaintenanceRecords
-        WHERE MaterialNo = @MaterialNo
+        WHERE DeviceId = @DeviceId
       `);
 
     res.json({ exists: result.recordset[0].Cnt > 0 });
@@ -527,20 +531,18 @@ router.get('/equipment-maintenance-records/exists/:materialNo', async (req, res)
 });
 
 // Get single EquipmentMaintenanceRecord
-router.get('/equipment-maintenance-records/:materialNo/:serialNumber/:id', async (req, res) => {
+router.get('/equipment-maintenance-records/:deviceId', async (req, res) => {
   try {
-    const { materialNo, serialNumber, id } = req.params;
+    const { deviceId } = req.params;
     const pool = await connectDB();
 
     const result = await pool.request()
-      .input('MaterialNo', mssql.VarChar(13), materialNo)
-      .input('SerialNumber', mssql.VarChar(50), serialNumber)
-      .input('Id', mssql.Int, id)
+      .input('DeviceId', mssql.VarChar(64), deviceId)
       .query(`
-        SELECT * FROM EquipmentMaintenanceRecords
-        WHERE MaterialNo = @MaterialNo
-          AND SerialNumber = @SerialNumber
-          AND Id = @Id
+        SELECT emr.*, device.DeviceName, device.SerialNumber, device.PurchaseDate
+        FROM EquipmentMaintenanceRecords emr
+        INNER JOIN RepairableDevices device ON device.DeviceID = emr.DeviceId
+        WHERE emr.DeviceId = @DeviceId
       `);
 
     if (result.recordset.length === 0) {
@@ -556,20 +558,19 @@ router.get('/equipment-maintenance-records/:materialNo/:serialNumber/:id', async
 // Create EquipmentMaintenanceRecord
 router.post('/equipment-maintenance-records', async (req, res) => {
   try {
-    const { MaterialNo, SerialNumber, Id, SystemCode, InChargeID, PurchaseDate,
+    const { DeviceId, InChargeID,
             MaintTypeCode, MaintTypeOther, MaintStartDate, MaintEndDate,
             WorkOrderNumber, RemovalDate, RemovalLocation, InstallationDate,
             InstallationLocation, FaultReasonCode, FaultReasonOther, ActionCode,
             ActionOther, ReplacementParts, CompletionDate, Remarks } = req.body;
+    if (!DeviceId || !InChargeID) {
+      return res.status(400).json({ error: 'DeviceId and InChargeID are required' });
+    }
     const pool = await connectDB();
 
     const result = await pool.request()
-      .input('MaterialNo', mssql.VarChar(13), MaterialNo)
-      .input('SerialNumber', mssql.VarChar(50), SerialNumber)
-      .input('Id', mssql.Int, Id)
-      .input('SystemCode', mssql.VarChar(5), SystemCode)
+      .input('DeviceId', mssql.VarChar(64), DeviceId)
       .input('InChargeID', mssql.VarChar(6), InChargeID)
-      .input('PurchaseDate', mssql.Date, PurchaseDate || null)
       .input('MaintTypeCode', mssql.VarChar(20), MaintTypeCode || null)
       .input('MaintTypeOther', mssql.NVarChar(100), MaintTypeOther || null)
       .input('MaintStartDate', mssql.Date, MaintStartDate || null)
@@ -588,34 +589,42 @@ router.post('/equipment-maintenance-records', async (req, res) => {
       .input('Remarks', mssql.NVarChar('max'), Remarks || null)
       .query(`
         INSERT INTO EquipmentMaintenanceRecords (
-          MaterialNo, SerialNumber, Id, SystemCode, InChargeID, PurchaseDate,
+          MaterialNo, DeviceId, InChargeID,
           MaintTypeCode, MaintTypeOther, MaintStartDate, MaintEndDate,
           WorkOrderNumber, RemovalDate, RemovalLocation, InstallationDate,
           InstallationLocation, FaultReasonCode, FaultReasonOther, ActionCode,
           ActionOther, ReplacementParts, CompletionDate, Remarks, CreatedAt, UpdatedAt
         )
         OUTPUT INSERTED.*
-        VALUES (
-          @MaterialNo, @SerialNumber, @Id, @SystemCode, @InChargeID, @PurchaseDate,
+        SELECT
+          device.MaterialNo, @DeviceId, @InChargeID,
           @MaintTypeCode, @MaintTypeOther, @MaintStartDate, @MaintEndDate,
           @WorkOrderNumber, @RemovalDate, @RemovalLocation, @InstallationDate,
           @InstallationLocation, @FaultReasonCode, @FaultReasonOther, @ActionCode,
           @ActionOther, @ReplacementParts, @CompletionDate, @Remarks, GETDATE(), GETDATE()
-        )
+        FROM RepairableDevices device
+        WHERE device.DeviceID = @DeviceId
+          AND device.CurrentLocationDeviceID IS NOT NULL
       `);
 
+    if (result.recordset.length === 0) {
+      return res.status(400).json({ error: 'RepairableDevice not found or is a location' });
+    }
     res.status(201).json(result.recordset[0]);
   } catch (error) {
     console.error('Error creating EquipmentMaintenanceRecord:', error);
+    if (error.number === 2601 || error.number === 2627) {
+      return res.status(409).json({ error: 'This repairable device already has a maintenance record' });
+    }
     res.status(500).json({ error: error.message });
   }
 });
 
 // Update EquipmentMaintenanceRecord
-router.put('/equipment-maintenance-records/:materialNo/:serialNumber/:id', async (req, res) => {
+router.put('/equipment-maintenance-records/:deviceId', async (req, res) => {
   try {
-    const { materialNo, serialNumber, id } = req.params;
-    const { SystemCode, InChargeID, PurchaseDate, MaintTypeCode,
+    const { deviceId } = req.params;
+    const { InChargeID, MaintTypeCode,
             MaintTypeOther, MaintStartDate, MaintEndDate, WorkOrderNumber, RemovalDate,
             RemovalLocation, InstallationDate, InstallationLocation, FaultReasonCode,
             FaultReasonOther, ActionCode, ActionOther, ReplacementParts, CompletionDate,
@@ -623,12 +632,8 @@ router.put('/equipment-maintenance-records/:materialNo/:serialNumber/:id', async
     const pool = await connectDB();
 
     const result = await pool.request()
-      .input('MaterialNo', mssql.VarChar(13), materialNo)
-      .input('SerialNumber', mssql.VarChar(50), serialNumber)
-      .input('Id', mssql.Int, id)
-      .input('SystemCode', mssql.VarChar(5), SystemCode)
+      .input('DeviceId', mssql.VarChar(64), deviceId)
       .input('InChargeID', mssql.VarChar(6), InChargeID)
-      .input('PurchaseDate', mssql.Date, PurchaseDate || null)
       .input('MaintTypeCode', mssql.VarChar(20), MaintTypeCode || null)
       .input('MaintTypeOther', mssql.NVarChar(100), MaintTypeOther || null)
       .input('MaintStartDate', mssql.Date, MaintStartDate || null)
@@ -647,9 +652,7 @@ router.put('/equipment-maintenance-records/:materialNo/:serialNumber/:id', async
       .input('Remarks', mssql.NVarChar('max'), Remarks || null)
       .query(`
         UPDATE EquipmentMaintenanceRecords
-        SET SystemCode = @SystemCode,
-            InChargeID = @InChargeID,
-            PurchaseDate = @PurchaseDate,
+        SET InChargeID = @InChargeID,
             MaintTypeCode = @MaintTypeCode,
             MaintTypeOther = @MaintTypeOther,
             MaintStartDate = @MaintStartDate,
@@ -668,9 +671,7 @@ router.put('/equipment-maintenance-records/:materialNo/:serialNumber/:id', async
             Remarks = @Remarks,
             UpdatedAt = GETDATE()
         OUTPUT INSERTED.*
-        WHERE MaterialNo = @MaterialNo
-          AND SerialNumber = @SerialNumber
-          AND Id = @Id
+        WHERE DeviceId = @DeviceId
       `);
 
     if (result.recordset.length === 0) {
@@ -684,20 +685,16 @@ router.put('/equipment-maintenance-records/:materialNo/:serialNumber/:id', async
 });
 
 // Delete EquipmentMaintenanceRecord
-router.delete('/equipment-maintenance-records/:materialNo/:serialNumber/:id', async (req, res) => {
+router.delete('/equipment-maintenance-records/:deviceId', async (req, res) => {
   try {
-    const { materialNo, serialNumber, id } = req.params;
+    const { deviceId } = req.params;
     const pool = await connectDB();
 
     const result = await pool.request()
-      .input('MaterialNo', mssql.VarChar(13), materialNo)
-      .input('SerialNumber', mssql.VarChar(50), serialNumber)
-      .input('Id', mssql.Int, id)
+      .input('DeviceId', mssql.VarChar(64), deviceId)
       .query(`
         DELETE FROM EquipmentMaintenanceRecords
-        WHERE MaterialNo = @MaterialNo
-          AND SerialNumber = @SerialNumber
-          AND Id = @Id
+        WHERE DeviceId = @DeviceId
       `);
 
     if (result.rowsAffected[0] === 0) {

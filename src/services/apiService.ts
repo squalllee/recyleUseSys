@@ -140,13 +140,19 @@ export async function getRepairableDeviceSubtree(deviceID: string) {
   return handleResponse<RepairableDevice[]>(response);
 }
 
+export async function searchRepairableDevices(keyword: string) {
+  const response = await fetch(
+    `${API_BASE_URL}/repairable-devices/search?keyword=${encodeURIComponent(keyword)}`
+  );
+  return handleResponse<RepairableDevice[]>(response);
+}
+
 export async function getRepairableLocationMap(
-  type: 'Device' | 'parts',
   system: string | null,
   subSystem: string | null,
   excludeDeviceID?: string
 ) {
-  const query = new URLSearchParams({ type });
+  const query = new URLSearchParams();
   if (system) query.set('system', system);
   if (subSystem) query.set('subSystem', subSystem);
   if (excludeDeviceID) query.set('excludeDeviceId', excludeDeviceID);
@@ -212,8 +218,8 @@ export async function createRepairableDevice(data: RepairableDeviceInput) {
       DeviceName: data.DeviceName,
       MaterialNo: data.MaterialNo,
       SerialNumber: data.SerialNumber,
+      PurchaseDate: data.PurchaseDate,
       CurrentLocationDeviceID: data.CurrentLocationDeviceID,
-      Type: data.Type,
       System: data.System,
       SubSystem: data.SubSystem,
     }),
@@ -229,8 +235,8 @@ export async function updateRepairableDevice(deviceID: string, data: RepairableD
       DeviceName: data.DeviceName,
       MaterialNo: data.MaterialNo,
       SerialNumber: data.SerialNumber,
+      PurchaseDate: data.PurchaseDate,
       CurrentLocationDeviceID: data.CurrentLocationDeviceID,
-      Type: data.Type,
       System: data.System,
       SubSystem: data.SubSystem,
     }),
@@ -333,27 +339,25 @@ export async function getEquipmentMaintenanceRecords() {
   return handleResponse<EquipmentMaintenanceRecord[]>(response);
 }
 
-export async function checkMaterialNoExists(materialNo: string) {
+export async function checkDeviceMaintenanceRecordExists(deviceID: string) {
   const response = await fetch(
-    `${API_BASE_URL}/equipment-maintenance-records/exists/${encodeURIComponent(materialNo)}`
+    `${API_BASE_URL}/equipment-maintenance-records/exists/${encodeURIComponent(deviceID)}`
   );
   const data = await handleResponse<{ exists: boolean }>(response);
   return data.exists;
 }
 
 export async function getEquipmentMaintenanceRecord(
-  materialNo: string,
-  serialNumber: string,
-  id: number
+  deviceID: string
 ) {
   const response = await fetch(
-    `${API_BASE_URL}/equipment-maintenance-records/${materialNo}/${serialNumber}/${id}`
+    `${API_BASE_URL}/equipment-maintenance-records/${encodeURIComponent(deviceID)}`
   );
   return handleResponse<EquipmentMaintenanceRecord>(response);
 }
 
 export async function createEquipmentMaintenanceRecord(
-  data: Omit<EquipmentMaintenanceRecord, 'CreatedAt' | 'UpdatedAt'>
+  data: Omit<EquipmentMaintenanceRecord, 'MaterialNo' | 'CreatedAt' | 'UpdatedAt'>
 ) {
   const response = await fetch(`${API_BASE_URL}/equipment-maintenance-records`, {
     method: 'POST',
@@ -364,13 +368,11 @@ export async function createEquipmentMaintenanceRecord(
 }
 
 export async function updateEquipmentMaintenanceRecord(
-  materialNo: string,
-  serialNumber: string,
-  id: number,
+  deviceID: string,
   data: Partial<EquipmentMaintenanceRecord>
 ) {
   const response = await fetch(
-    `${API_BASE_URL}/equipment-maintenance-records/${materialNo}/${serialNumber}/${id}`,
+    `${API_BASE_URL}/equipment-maintenance-records/${encodeURIComponent(deviceID)}`,
     {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -381,17 +383,15 @@ export async function updateEquipmentMaintenanceRecord(
 }
 
 export async function deleteEquipmentMaintenanceRecord(
-  materialNo: string,
-  serialNumber: string,
-  id: number
+  deviceID: string
 ) {
   const response = await fetch(
-    `${API_BASE_URL}/equipment-maintenance-records/${materialNo}/${serialNumber}/${id}`,
+    `${API_BASE_URL}/equipment-maintenance-records/${encodeURIComponent(deviceID)}`,
     { method: 'DELETE' }
   );
   if (!response.ok) {
     throw new Error(
-      `Failed to delete equipment maintenance record ${materialNo}/${serialNumber}/${id}`
+      `Failed to delete equipment maintenance record ${deviceID}`
     );
   }
 }
@@ -423,14 +423,13 @@ export interface RepairableDeviceInput {
   DeviceName: string;
   MaterialNo: string | null;
   SerialNumber: string | null;
+  PurchaseDate: string | null;
   CurrentLocationDeviceID: string | null;
-  Type: 'Device' | 'parts';
   System: string | null;
   SubSystem: string | null;
 }
 
-export interface RepairableDevice extends Omit<RepairableDeviceInput, 'Type'> {
-  Type: 'location' | 'Device' | 'parts';
+export interface RepairableDevice extends RepairableDeviceInput {
   CreatedAt: string;
   UpdatedAt: string;
   HierarchyLevel: number;
@@ -456,7 +455,6 @@ export interface RepairableLocationMapNode {
   MaterialNo: string | null;
   SerialNumber: string | null;
   CurrentLocationDeviceID: string | null;
-  Type: 'location' | 'Device' | 'parts';
   System: string | null;
   SubSystem: string | null;
   MatchesClassification: boolean;
@@ -497,11 +495,8 @@ export interface Employee {
 
 export interface EquipmentMaintenanceRecord {
   MaterialNo: string;
-  SerialNumber: string;
-  Id: number;
-  SystemCode: string;
+  DeviceId: string;
   InChargeID: string;
-  PurchaseDate: string | null;
   MaintTypeCode: string | null;
   MaintTypeOther: string | null;
   MaintStartDate: string | null;
@@ -524,4 +519,7 @@ export interface EquipmentMaintenanceRecord {
   MaintTypeName?: string;
   FaultReasonName?: string;
   ActionName?: string;
+  DeviceName?: string;
+  SerialNumber?: string | null;
+  PurchaseDate?: string | null;
 }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import MaterialNoSelect from '../components/MaterialNoSelect.vue'
+import RepairableDeviceSelect from '../components/RepairableDeviceSelect.vue'
 import EmployeeSelect from '../components/EmployeeSelect.vue'
 import LocationSelect from '../components/LocationSelect.vue'
 import {
@@ -12,14 +12,13 @@ import {
   createEquipmentMaintenanceRecord,
   updateEquipmentMaintenanceRecord,
   deleteEquipmentMaintenanceRecord,
-  checkMaterialNoExists,
-  searchMaterials,
+  checkDeviceMaintenanceRecordExists,
   getEmployeeByKeyno,
   type MaintTypePhrase,
   type FaultReasonPhrase,
   type ActionPhrase,
   type EquipmentMaintenanceRecord,
-  type Material,
+  type RepairableDevice,
   type Location,
 } from '../services/apiService'
 
@@ -33,33 +32,27 @@ const equipmentRecords = ref<EquipmentMaintenanceRecord[]>([])
 // Loading state
 const loading = ref(false)
 
-// 物料編號/物料名稱搜尋：表格一開始不顯示任何資料，需透過下拉選擇物料後才顯示該物料的記錄
+// 可修件搜尋：表格一開始不顯示資料，選定 RepairableDevices 項目後才顯示記錄。
 const searchKeyword = ref('')
 const hasSearched = ref(false)
-const searchedMaterialNos = ref<string[]>([])
-const materialNameMap = ref<Record<string, string>>({})
-const systemNameMap = ref<Record<string, string>>({})
+const searchedDeviceID = ref('')
 // InChargeID(員工編號) -> 中文姓名，用於表格顯示
 const employeeNameMap = ref<Record<string, string>>({})
 
-const onSearchMaterialSelected = (material: Material) => {
+const onSearchDeviceSelected = (device: RepairableDevice) => {
   hasSearched.value = true
-  searchedMaterialNos.value = [material.物料編號]
-  materialNameMap.value = { [material.物料編號]: material.物料名稱 }
-  systemNameMap.value = { [material.系統代號 || '']: material.系統名稱 || '' }
+  searchedDeviceID.value = device.DeviceID
 }
 
 const clearSearch = () => {
   searchKeyword.value = ''
   hasSearched.value = false
-  searchedMaterialNos.value = []
-  materialNameMap.value = {}
-  systemNameMap.value = {}
+  searchedDeviceID.value = ''
 }
 
 const filteredEquipmentRecords = computed(() => {
   if (!hasSearched.value) return []
-  return equipmentRecords.value.filter((item) => searchedMaterialNos.value.includes(item.MaterialNo))
+  return equipmentRecords.value.filter((item) => item.DeviceId === searchedDeviceID.value)
 })
 
 // 依目前顯示的記錄，補齊尚未查過的負責人中文姓名
@@ -94,13 +87,18 @@ const modal = ref<{
 })
 
 // Form data
+const getLocalToday = () => {
+  const now = new Date()
+  const localTime = new Date(now.getTime() - now.getTimezoneOffset() * 60_000)
+  return localTime.toISOString().slice(0, 10)
+}
+
 const form = ref({
+  deviceID: '',
+  deviceName: '',
   materialNo: '',
-  materialName: '',
-  id: null as number | null | string,
-  systemCode: '',
+  serialNumber: '',
   inChargeID: '',
-  purchaseDate: '',
   maintTypeCode: '',
   maintTypeOther: '',
   maintStartDate: '',
@@ -108,6 +106,7 @@ const form = ref({
   workOrderNumber: '',
   removalDate: '',
   removalLocation: '',
+  removalLocationName: '',
   installationDate: '',
   installationLocation: '',
   faultReasonCode: '',
@@ -167,12 +166,11 @@ const closeModal = () => {
 }
 
 const populateForm = (data: any) => {
+  form.value.deviceID = data.DeviceId
+  form.value.deviceName = data.DeviceName || ''
   form.value.materialNo = data.MaterialNo
-  form.value.materialName = ''
-  form.value.id = String(data.SerialNumber)
-  form.value.systemCode = data.SystemCode
+  form.value.serialNumber = data.SerialNumber || ''
   form.value.inChargeID = data.InChargeID
-  form.value.purchaseDate = data.PurchaseDate?.split('T')[0] || ''
   form.value.maintTypeCode = data.MaintTypeCode || ''
   form.value.maintTypeOther = data.MaintTypeOther || ''
   form.value.maintStartDate = data.MaintStartDate?.split('T')[0] || ''
@@ -180,6 +178,7 @@ const populateForm = (data: any) => {
   form.value.workOrderNumber = data.WorkOrderNumber || ''
   form.value.removalDate = data.RemovalDate?.split('T')[0] || ''
   form.value.removalLocation = data.RemovalLocation || ''
+  form.value.removalLocationName = ''
   form.value.installationDate = data.InstallationDate?.split('T')[0] || ''
   form.value.installationLocation = data.InstallationLocation || ''
   form.value.faultReasonCode = data.FaultReasonCode || ''
@@ -190,29 +189,22 @@ const populateForm = (data: any) => {
   form.value.completionDate = data.CompletionDate?.split('T')[0] || ''
   form.value.remarks = data.Remarks || ''
 
-  // 編輯模式下另外查詢物料名稱以供顯示（EquipmentMaintenanceRecords 只存物料編號）
-  searchMaterials(data.MaterialNo)
-    .then((results) => {
-      const matched = results.find((m) => m.物料編號 === data.MaterialNo)
-      if (matched) form.value.materialName = matched.物料名稱
-    })
-    .catch((error) => console.error('Failed to load material name:', error))
 }
 
 const resetForm = () => {
+  form.value.deviceID = ''
+  form.value.deviceName = ''
   form.value.materialNo = ''
-  form.value.materialName = ''
-  form.value.id = null
-  form.value.systemCode = ''
+  form.value.serialNumber = ''
   form.value.inChargeID = ''
-  form.value.purchaseDate = ''
   form.value.maintTypeCode = ''
   form.value.maintTypeOther = ''
   form.value.maintStartDate = ''
   form.value.maintEndDate = ''
   form.value.workOrderNumber = ''
-  form.value.removalDate = ''
+  form.value.removalDate = getLocalToday()
   form.value.removalLocation = ''
+  form.value.removalLocationName = ''
   form.value.installationDate = ''
   form.value.installationLocation = ''
   form.value.faultReasonCode = ''
@@ -260,16 +252,14 @@ watch(isActionOther, (isOther) => {
   if (!isOther) form.value.actionOther = ''
 })
 
-// 選定物料編號後，新增模式下需確認該物料編號尚未建立過維修記錄，並帶入對應系統代碼與物料名稱
-const onMaterialSelected = async (material: Material) => {
+// 選定可修件後帶入 DeviceID、設備序號與目前位置。
+const onDeviceSelected = async (device: RepairableDevice) => {
   if (modal.value.mode === 'create') {
     try {
-      const exists = await checkMaterialNoExists(material.物料編號)
+      const exists = await checkDeviceMaintenanceRecordExists(device.DeviceID)
       if (exists) {
-        alert(`物料編號 ${material.物料編號} 已建立過設備維修記錄，請選擇其他物料編號`)
-        form.value.materialNo = ''
-        form.value.systemCode = ''
-        form.value.materialName = ''
+        alert(`可修件 ${device.DeviceName}（${device.DeviceID}）已建立過設備維修記錄`)
+        resetForm()
         return
       }
     } catch (error) {
@@ -277,16 +267,18 @@ const onMaterialSelected = async (material: Material) => {
     }
   }
 
-  form.value.systemCode = material.系統代號 || ''
-  form.value.materialName = material.物料名稱 || ''
+  form.value.deviceID = device.DeviceID
+  form.value.deviceName = device.DeviceName
+  form.value.materialNo = device.MaterialNo || ''
+  form.value.serialNumber = device.SerialNumber || ''
+  form.value.removalLocation = device.CurrentLocationDeviceID || ''
+  form.value.removalLocationName = device.CurrentLocationDeviceName || ''
 }
 
-// 必填欄位檢查：物料編號、設備序號、系統代碼、維修/檢修負責人
+// 必填欄位檢查
 const validateRequiredFields = () => {
   const missing: string[] = []
-  if (!form.value.materialNo) missing.push('物料編號')
-  if (!form.value.id) missing.push('設備序號')
-  if (!form.value.systemCode) missing.push('系統代碼')
+  if (!form.value.deviceID) missing.push('可修件名稱')
   if (!form.value.inChargeID) missing.push('維修負責人')
   if (!form.value.workOrderNumber) missing.push('工單號碼')
   if (!form.value.maintTypeCode) missing.push('檢修類別')
@@ -302,26 +294,14 @@ const validateRequiredFields = () => {
   return true
 }
 
-// 新增模式下的項次：取該物料編號目前已有記錄中最大的 Id 再 +1，而非固定從 1 開始
-const getNextId = (materialNo: string) => {
-  const existingIds = equipmentRecords.value
-    .filter((item) => item.MaterialNo === materialNo)
-    .map((item) => item.Id)
-  return existingIds.length > 0 ? Math.max(...existingIds) + 1 : 1
-}
-
 // CRUD handlers
 const handleSave = async () => {
   if (!validateRequiredFields()) return
 
   try {
     const data = {
-      MaterialNo: form.value.materialNo,
-      SerialNumber: form.value.id ? String(form.value.id) : '',
-      Id: modal.value.mode === 'create' ? getNextId(form.value.materialNo) : modal.value.data.Id,
-      SystemCode: form.value.systemCode,
+      DeviceId: form.value.deviceID,
       InChargeID: form.value.inChargeID,
-      PurchaseDate: form.value.purchaseDate || null,
       MaintTypeCode: form.value.maintTypeCode || null,
       MaintTypeOther: form.value.maintTypeOther || null,
       MaintStartDate: form.value.maintStartDate || null,
@@ -342,12 +322,7 @@ const handleSave = async () => {
     if (modal.value.mode === 'create') {
       await createEquipmentMaintenanceRecord(data)
     } else {
-      await updateEquipmentMaintenanceRecord(
-        modal.value.data.MaterialNo,
-        modal.value.data.SerialNumber,
-        modal.value.data.Id,
-        data
-      )
+      await updateEquipmentMaintenanceRecord(modal.value.data.DeviceId, data)
     }
     closeModal()
     loadData()
@@ -357,11 +332,11 @@ const handleSave = async () => {
   }
 }
 
-// 完工彈窗：顯示物料編號/物料名稱，並讓使用者填寫完工時才需要的資料
+// 完工彈窗：顯示可修件編號/名稱，並讓使用者填寫完工時才需要的資料
 const completeModal = ref<{
   visible: boolean
   record: EquipmentMaintenanceRecord | null
-  materialName: string
+  deviceName: string
   form: {
     maintEndDate: string
     installationDate: string
@@ -373,7 +348,7 @@ const completeModal = ref<{
 }>({
   visible: false,
   record: null,
-  materialName: '',
+  deviceName: '',
   form: {
     maintEndDate: '',
     installationDate: '',
@@ -384,10 +359,10 @@ const completeModal = ref<{
   },
 })
 
-const openCompleteModal = (record: EquipmentMaintenanceRecord, materialName: string) => {
+const openCompleteModal = (record: EquipmentMaintenanceRecord, deviceName: string) => {
   completeModal.value.visible = true
   completeModal.value.record = record
-  completeModal.value.materialName = materialName
+  completeModal.value.deviceName = deviceName
   completeModal.value.form = {
     maintEndDate: record.MaintEndDate?.split('T')[0] || '',
     installationDate: record.InstallationDate?.split('T')[0] || '',
@@ -414,9 +389,7 @@ const handleCompleteSave = async () => {
 
   try {
     const data = {
-      SystemCode: record.SystemCode,
       InChargeID: record.InChargeID,
-      PurchaseDate: record.PurchaseDate?.split('T')[0] || null,
       MaintTypeCode: record.MaintTypeCode,
       MaintTypeOther: record.MaintTypeOther,
       MaintStartDate: record.MaintStartDate?.split('T')[0] || null,
@@ -434,7 +407,7 @@ const handleCompleteSave = async () => {
       CompletionDate: completeModal.value.form.completionDate,
       Remarks: completeModal.value.form.remarks || null,
     }
-    await updateEquipmentMaintenanceRecord(record.MaterialNo, record.SerialNumber, record.Id, data)
+    await updateEquipmentMaintenanceRecord(record.DeviceId, data)
     closeCompleteModal()
     loadData()
   } catch (error) {
@@ -447,11 +420,7 @@ const handleDelete = async (record: EquipmentMaintenanceRecord) => {
   if (!confirm(`確定要刪除這筆資料嗎？`)) return
 
   try {
-    await deleteEquipmentMaintenanceRecord(
-      record.MaterialNo,
-      record.SerialNumber,
-      record.Id
-    )
+    await deleteEquipmentMaintenanceRecord(record.DeviceId)
     loadData()
   } catch (error) {
     console.error('Delete error:', error)
@@ -461,21 +430,22 @@ const handleDelete = async (record: EquipmentMaintenanceRecord) => {
 
 // Helper to get equipment row key
 const getEquipmentIdKey = (record: EquipmentMaintenanceRecord) =>
-  `${record.MaterialNo}-${record.SerialNumber}-${record.Id}`
+  record.DeviceId
 
-// 依「物料編號 + 設備序號」分組：表頭顯示物料編號/物料名稱/設備序號，表身顯示同一設備下的各筆維修記錄
+// 依 DeviceId 分組，裝置資訊由 RepairableDevices JOIN 後的欄位顯示。
 const groupedRecords = computed(() => {
-  const groups: { materialNo: string; materialName: string; serialNumber: string; records: EquipmentMaintenanceRecord[] }[] = []
+  const groups: { deviceID: string; deviceName: string; serialNumber: string; purchaseDate: string; records: EquipmentMaintenanceRecord[] }[] = []
   const indexByKey = new Map<string, number>()
 
   for (const item of filteredEquipmentRecords.value) {
-    const key = `${item.MaterialNo}-${item.SerialNumber}`
+    const key = item.DeviceId
     if (!indexByKey.has(key)) {
       indexByKey.set(key, groups.length)
       groups.push({
-        materialNo: item.MaterialNo,
-        materialName: materialNameMap.value[item.MaterialNo] || '',
-        serialNumber: item.SerialNumber,
+        deviceID: item.DeviceId,
+        deviceName: item.DeviceName || '',
+        serialNumber: item.SerialNumber || '',
+        purchaseDate: item.PurchaseDate?.split('T')[0] || '',
         records: [],
       })
     }
@@ -505,7 +475,7 @@ const getLocationLabel = (code: string | null) => {
 <template>
   <div class="max-w-full mx-auto">
     <h2 class="text-xl font-bold text-slate-900">維修記錄維護</h2>
-    <p class="mt-1 mb-5 text-sm text-slate-500">依物料查詢檢修歷程，管理故障原因、處理方式與完工資訊。</p>
+    <p class="mt-1 mb-5 text-sm text-slate-500">依可修件查詢檢修歷程，管理故障原因、處理方式與完工資訊。</p>
 
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
       <div class="p-4 border-b border-slate-200 flex flex-wrap justify-between items-center gap-3 bg-slate-50/50 rounded-t-xl">
@@ -518,10 +488,10 @@ const getLocationLabel = (code: string | null) => {
         </p>
         <div class="flex w-full sm:w-auto flex-wrap items-center gap-2">
           <div class="w-full sm:w-64">
-            <MaterialNoSelect
+            <RepairableDeviceSelect
               v-model="searchKeyword"
-              placeholder="輸入物料編號或物料名稱搜尋"
-              @select="onSearchMaterialSelected"
+              placeholder="輸入可修件名稱搜尋"
+              @select="onSearchDeviceSelected"
             />
           </div>
           <button
@@ -550,8 +520,8 @@ const getLocationLabel = (code: string | null) => {
       <div v-else-if="!hasSearched" class="p-8 text-center rounded-b-xl overflow-hidden">
         <div class="mx-auto max-w-sm py-8">
           <svg class="mx-auto mb-4 h-10 w-10 text-slate-400" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="10" cy="10" r="6" /><path d="m15 15 6 6" /></svg>
-          <p class="font-semibold text-slate-700">先選擇要查詢的物料</p>
-          <p class="mt-2 text-sm leading-7 text-slate-500">在上方輸入物料編號或名稱，再從下拉清單選取物料，即可查看維修記錄。</p>
+          <p class="font-semibold text-slate-700">先選擇要查詢的可修件</p>
+          <p class="mt-2 text-sm leading-7 text-slate-500">在上方輸入可修件名稱，再從下拉清單選取，即可查看維修記錄。</p>
           <p class="mt-3 text-xs text-slate-500">需要登錄新資料？點選「新增維修記錄」。</p>
         </div>
       </div>
@@ -563,14 +533,15 @@ const getLocationLabel = (code: string | null) => {
       <div v-else class="overflow-auto h-[70vh] p-4 space-y-4 rounded-b-xl">
         <div
           v-for="group in groupedRecords"
-          :key="`${group.materialNo}-${group.serialNumber}`"
+          :key="group.deviceID"
           class="border border-slate-200 rounded-lg overflow-hidden"
         >
-          <!-- 表頭：物料編號 / 物料名稱 / 設備序號 -->
+          <!-- 表頭：可修件編號 / 可修件名稱 / 設備序號 / 購買日期 -->
           <div class="bg-slate-100 px-4 py-2.5 flex flex-wrap gap-x-8 gap-y-1 text-sm">
-            <div><span class="font-semibold text-slate-600">物料編號：</span><span class="text-slate-900">{{ group.materialNo }}</span></div>
-            <div><span class="font-semibold text-slate-600">物料名稱：</span><span class="text-slate-900">{{ group.materialName || '-' }}</span></div>
-            <div><span class="font-semibold text-slate-600">設備序號：</span><span class="text-slate-900">{{ group.serialNumber }}</span></div>
+            <div><span class="font-semibold text-slate-600">可修件編號：</span><span class="text-slate-900">{{ group.deviceID }}</span></div>
+            <div><span class="font-semibold text-slate-600">可修件名稱：</span><span class="text-slate-900">{{ group.deviceName || '-' }}</span></div>
+            <div><span class="font-semibold text-slate-600">設備序號：</span><span class="text-slate-900">{{ group.serialNumber || '-' }}</span></div>
+            <div><span class="font-semibold text-slate-600">購買日期：</span><span class="text-slate-900">{{ group.purchaseDate || '-' }}</span></div>
           </div>
 
           <!-- 表身：同一設備下的各筆維修記錄 -->
@@ -579,10 +550,7 @@ const getLocationLabel = (code: string | null) => {
               <thead class="bg-slate-50">
                 <tr>
                   <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider sticky left-0 z-20 bg-slate-50 w-24">完工</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider sticky left-24 z-20 bg-slate-50">項次</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">系統名稱</th>
                   <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">負責人</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">購入日期</th>
                   <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">檢修類別</th>
                   <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">其它檢修類別</th>
                   <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">檢修開始日期</th>
@@ -607,17 +575,14 @@ const getLocationLabel = (code: string | null) => {
                   <td class="px-6 py-4 whitespace-nowrap text-sm sticky left-0 z-10 bg-white group-hover:bg-slate-50 w-24">
                     <button
                       v-if="!item.CompletionDate"
-                      @click="openCompleteModal(item, group.materialName)"
+                      @click="openCompleteModal(item, group.deviceName)"
                       class="px-2 py-1 text-xs font-medium rounded-md bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors"
                     >
                       完工
                     </button>
                     <span v-else class="text-xs text-slate-400">已完工</span>
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 sticky left-24 z-10 bg-white group-hover:bg-slate-50">{{ item.Id }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ systemNameMap[item.SystemCode] || item.SystemCode }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ employeeNameMap[item.InChargeID] || item.InChargeID }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ item.PurchaseDate?.split('T')[0] || '-' }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ item.MaintTypeName || '-' }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ item.MaintTypeOther || '-' }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ item.MaintStartDate?.split('T')[0] || '-' }}</td>
@@ -668,62 +633,44 @@ const getLocationLabel = (code: string | null) => {
           <div class="space-y-4">
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label class="block text-sm font-medium text-slate-700">物料編號 <span class="text-red-500">*</span></label>
-                <MaterialNoSelect
-                  v-model="form.materialNo"
-                  placeholder="輸入物料編號或名稱搜尋"
-                  :maxlength="13"
-                  @select="onMaterialSelected"
+                <label class="block text-sm font-medium text-slate-700">可修件名稱 <span class="text-red-500">*</span></label>
+                <RepairableDeviceSelect
+                  v-model="form.deviceName"
+                  placeholder="輸入可修件名稱搜尋"
+                  :disabled="modal.mode === 'update'"
+                  @select="onDeviceSelected"
                 />
               </div>
               <div>
-                <label class="block text-sm font-medium text-slate-700">物料名稱 (由物料編號帶入)</label>
+                <label class="block text-sm font-medium text-slate-700">可修件編號</label>
                 <input
-                  v-model="form.materialName"
+                  v-model="form.deviceID"
                   type="text"
                   readonly
                   class="mt-1 block w-full rounded-md border-slate-300 shadow-sm bg-slate-50 text-slate-500 cursor-not-allowed sm:text-sm p-2 border"
-                  placeholder="選擇物料編號後自動帶入"
+                  placeholder="選擇可修件後自動帶入"
                 />
               </div>
               <div>
-                <label class="block text-sm font-medium text-slate-700">設備序號 <span class="text-red-500">*</span></label>
+                <label class="block text-sm font-medium text-slate-700">設備序號</label>
                 <input
-                  v-model="form.id"
-                  type="number"
-                  required
-                  class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                  v-model="form.serialNumber"
+                  type="text"
+                  readonly
+                  class="mt-1 block w-full rounded-md border-slate-300 shadow-sm bg-slate-50 text-slate-500 cursor-not-allowed sm:text-sm p-2 border"
+                  placeholder="選擇可修件後自動帶入"
                 />
               </div>
             </div>
 
-            <div class="border-t border-slate-200 pt-4">
+            <div v-if="modal.mode !== 'create'" class="border-t border-slate-200 pt-4">
               <h4 class="text-sm font-semibold text-slate-900 mb-3">基本資訊</h4>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label class="block text-sm font-medium text-slate-700">系統代碼 (由物料編號帶入) <span class="text-red-500">*</span></label>
-                  <input
-                    v-model="form.systemCode"
-                    type="text"
-                    readonly
-                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm bg-slate-50 text-slate-500 cursor-not-allowed sm:text-sm p-2 border"
-                    placeholder="選擇物料編號後自動帶入"
-                    maxlength="5"
-                  />
-                </div>
-                <div v-if="modal.mode !== 'create'">
                   <label class="block text-sm font-medium text-slate-700">檢修負責人</label>
                   <EmployeeSelect
                     v-model="form.inChargeID"
                     placeholder="輸入姓名或員工編號搜尋"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-slate-700">Purchase Date</label>
-                  <input
-                    v-model="form.purchaseDate"
-                    type="date"
-                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
                   />
                 </div>
               </div>
@@ -732,6 +679,41 @@ const getLocationLabel = (code: string | null) => {
             <div class="border-t border-slate-200 pt-4">
               <h4 class="text-sm font-semibold text-slate-900 mb-3">維修資訊</h4>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div v-if="modal.mode === 'create'">
+                  <label class="block text-sm font-medium text-slate-700">拆下日期</label>
+                  <input
+                    v-model="form.removalDate"
+                    type="date"
+                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                  />
+                </div>
+                <div v-if="modal.mode === 'create'">
+                  <label class="block text-sm font-medium text-slate-700">拆下位置 <span class="text-red-500">*</span></label>
+                  <input
+                    :value="form.removalLocationName
+                      ? `${form.removalLocationName}（${form.removalLocation}）`
+                      : form.removalLocation"
+                    type="text"
+                    readonly
+                    placeholder="選擇可修件後自動帶入目前位置"
+                    class="mt-1 block w-full cursor-not-allowed rounded-md border border-slate-300 bg-slate-50 p-2 text-sm text-slate-500 shadow-sm"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700">工單號碼 <span class="text-red-500">*</span></label>
+                  <input
+                    v-model="form.workOrderNumber"
+                    type="text"
+                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                  />
+                </div>
+                <div v-if="modal.mode === 'create'">
+                  <label class="block text-sm font-medium text-slate-700">維修負責人 <span class="text-red-500">*</span></label>
+                  <EmployeeSelect
+                    v-model="form.inChargeID"
+                    placeholder="輸入姓名或員工編號搜尋"
+                  />
+                </div>
                 <div>
                   <label class="block text-sm font-medium text-slate-700">檢修類別 <span class="text-red-500">*</span></label>
                   <select
@@ -772,37 +754,6 @@ const getLocationLabel = (code: string | null) => {
                     v-model="form.maintEndDate"
                     type="date"
                     class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-slate-700">工單號碼 <span class="text-red-500">*</span></label>
-                  <input
-                    v-model="form.workOrderNumber"
-                    type="text"
-                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                  />
-                </div>
-                <div v-if="modal.mode === 'create'">
-                  <label class="block text-sm font-medium text-slate-700">維修負責人 <span class="text-red-500">*</span></label>
-                  <EmployeeSelect
-                    v-model="form.inChargeID"
-                    placeholder="輸入姓名或員工編號搜尋"
-                  />
-                </div>
-                <div v-if="modal.mode === 'create'">
-                  <label class="block text-sm font-medium text-slate-700">拆下日期</label>
-                  <input
-                    v-model="form.removalDate"
-                    type="date"
-                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                  />
-                </div>
-                <div v-if="modal.mode === 'create'">
-                  <label class="block text-sm font-medium text-slate-700">拆下位置 <span class="text-red-500">*</span></label>
-                  <LocationSelect
-                    v-model="form.removalLocation"
-                    :locations="locations"
-                    placeholder="輸入地點代碼或地點名稱搜尋"
                   />
                 </div>
                 <div v-if="modal.mode === 'create'">
@@ -1013,12 +964,12 @@ const getLocationLabel = (code: string | null) => {
         <div class="bg-white px-6 py-4 overflow-y-auto flex-1 space-y-4 max-h-[65vh]">
           <div class="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <span class="font-semibold text-slate-600">物料編號：</span>
-              <span class="text-slate-900">{{ completeModal.record?.MaterialNo }}</span>
+              <span class="font-semibold text-slate-600">可修件編號：</span>
+              <span class="text-slate-900">{{ completeModal.record?.DeviceId }}</span>
             </div>
             <div>
-              <span class="font-semibold text-slate-600">物料名稱：</span>
-              <span class="text-slate-900">{{ completeModal.materialName || '-' }}</span>
+              <span class="font-semibold text-slate-600">可修件名稱：</span>
+              <span class="text-slate-900">{{ completeModal.deviceName || '-' }}</span>
             </div>
           </div>
 

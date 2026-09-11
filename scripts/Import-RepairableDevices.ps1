@@ -105,6 +105,7 @@ CREATE TABLE dbo.RepairableDevices
     DeviceName NVARCHAR(100) NOT NULL,
     MaterialNo VARCHAR(50) NULL,
     SerialNumber VARCHAR(50) NULL,
+    PurchaseDate DATE NULL,
     CurrentLocationDeviceID VARCHAR(64) NULL,
     CreatedAt DATETIME2(0) NOT NULL
         CONSTRAINT DF_RepairableDevices_CreatedAt DEFAULT SYSUTCDATETIME(),

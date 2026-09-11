@@ -1,0 +1,22 @@
+SET XACT_ABORT ON;
+
+BEGIN TRANSACTION;
+BEGIN TRY
+    IF OBJECT_ID(N'dbo.RepairableDevices', N'U') IS NULL
+        THROW 50110, 'dbo.RepairableDevices does not exist.', 1;
+
+    IF COL_LENGTH(N'dbo.RepairableDevices', N'PurchaseDate') IS NULL
+        ALTER TABLE dbo.RepairableDevices ADD PurchaseDate DATE NULL;
+
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+    THROW;
+END CATCH;
+
+SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_SCHEMA = 'dbo'
+  AND TABLE_NAME = 'RepairableDevices'
+  AND COLUMN_NAME = 'PurchaseDate';

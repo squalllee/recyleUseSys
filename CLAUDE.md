@@ -65,11 +65,12 @@ npm run seed:tables  # ⚠️ References src/seed/seedTables.js, which does not 
 - `ActionPhrases` - Maintenance action types
 - `FaultReasonPhrases` - Fault reason codes
 - `MaintTypePhrases` - Maintenance type classifications
-- `EquipmentMaintenanceRecords` - Equipment maintenance history (uses composite key: MaterialNo + SerialNumber + Id)
+- `EquipmentMaintenanceRecords` - Equipment maintenance data linked by `DeviceId` to `RepairableDevices.DeviceID`
+- `RepairableDevices` - Repairable item hierarchy; `PurchaseDate` is nullable and root location rows are identified by a null `CurrentLocationDeviceID` (there is no type column)
 
 ### Key Patterns
 - **Auth is external + client-side only.** `loginService` calls the external login system; on success `stores/auth.ts` (a setup-style Pinia store) persists `isLoggedIn`/`userInfo` to `localStorage`. `main.ts` calls `auth.hydrate()` after Pinia is installed to restore state. The router guard (`router/index.ts`) trusts either the store **or** `localStorage`. There is no backend session/token — the Express API is unauthenticated.
-- **`EquipmentMaintenanceRecords` uses a composite key** (`MaterialNo` + `SerialNumber` + `Id`), reflected in both the REST paths (`/:materialNo/:serialNumber/:id`) and the `apiService.ts` function signatures. Its list endpoint `LEFT JOIN`s the three phrase tables to resolve `*Code` columns into `*Name` fields (returned as `MaintTypeName`/`FaultReasonName`/`ActionName`).
+- **`EquipmentMaintenanceRecords` uses `DeviceId`** as its key and REST identifier (`/:deviceId`). Its list endpoint joins `RepairableDevices.DeviceID` for `DeviceName`, `SerialNumber`, and `PurchaseDate`, and joins the three phrase tables to resolve maintenance code names.
 - All SQL uses **parameterized inputs** with explicit `mssql` types (`.input('X', mssql.Int, val)`); mirror this when adding queries.
 - TypeScript interfaces in `apiService.ts` are the single source of truth for API shapes; frontend uses `fetch` with centralized error handling via `handleResponse`.
 
@@ -97,4 +98,3 @@ WMS_DB_TRUST_SERVER_CERTIFICATE=
 
 # PORT=3000   # optional; API defaults to 3000
 ```
-

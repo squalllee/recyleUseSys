@@ -66,7 +66,7 @@ const HierarchyNodeView: any = defineComponent({
       const isExpanded = props.expandedIds.has(device.DeviceID)
       const isSelected = props.selectedId === device.DeviceID
       const levelName =
-        device.HierarchyLevel === 0 ? '根節點' : device.HierarchyLevel === 1 ? '設備' : `L${device.HierarchyLevel - 1}`
+        device.HierarchyLevel === 0 ? '根節點' : device.HierarchyLevel === 1 ? '可修件' : `L${device.HierarchyLevel - 1}`
 
       return h('li', { class: 'relative' }, [
         h('span', { class: 'absolute -left-5 top-6 h-px w-5 bg-slate-200' }),
@@ -142,8 +142,8 @@ const emptyForm = (): RepairableDeviceInput => ({
   DeviceName: '',
   MaterialNo: null,
   SerialNumber: null,
+  PurchaseDate: null,
   CurrentLocationDeviceID: null,
-  Type: 'Device',
   System: null,
   SubSystem: null,
 })
@@ -161,7 +161,6 @@ const filteredDevices = computed(() => {
       device.SerialNumber,
       device.CurrentLocationDeviceID,
       device.CurrentLocationDeviceName,
-      device.Type,
       device.System,
       device.SubSystem,
     ].some((value) => String(value ?? '').toLocaleLowerCase().includes(search))
@@ -194,6 +193,30 @@ const visibleDevices = computed(() =>
     return true
   })
 )
+
+const PAGE_SIZE = 10
+const currentPage = ref(1)
+const totalPages = computed(() => Math.max(1, Math.ceil(visibleDevices.value.length / PAGE_SIZE)))
+const paginatedDevices = computed(() => {
+  const start = (currentPage.value - 1) * PAGE_SIZE
+  return visibleDevices.value.slice(start, start + PAGE_SIZE)
+})
+const pageStart = computed(() => visibleDevices.value.length ? (currentPage.value - 1) * PAGE_SIZE + 1 : 0)
+const pageEnd = computed(() => Math.min(currentPage.value * PAGE_SIZE, visibleDevices.value.length))
+const visiblePageNumbers = computed(() => {
+  const pageCount = totalPages.value
+  const start = Math.max(1, Math.min(currentPage.value - 2, pageCount - 4))
+  const end = Math.min(pageCount, start + 4)
+  return Array.from({ length: end - start + 1 }, (_, index) => start + index)
+})
+
+watch(keyword, () => {
+  currentPage.value = 1
+})
+
+watch(totalPages, (pageCount) => {
+  if (currentPage.value > pageCount) currentPage.value = pageCount
+})
 
 const materialSelectionValid = computed(
   () => !form.value.MaterialNo || selectedMaterialNo.value === form.value.MaterialNo
@@ -245,11 +268,6 @@ const onSystemChanged = () => {
   selectedLocationName.value = null
   form.value.SubSystem = null
   void loadSubSystems(form.value.System)
-}
-
-const onTypeChanged = () => {
-  form.value.CurrentLocationDeviceID = null
-  selectedLocationName.value = null
 }
 
 const onSubSystemChanged = () => {
@@ -665,8 +683,8 @@ const openEditModal = (device: RepairableDevice) => {
     DeviceName: device.DeviceName,
     MaterialNo: device.MaterialNo,
     SerialNumber: device.SerialNumber,
+    PurchaseDate: device.PurchaseDate,
     CurrentLocationDeviceID: device.CurrentLocationDeviceID,
-    Type: device.Type === 'parts' ? 'parts' : 'Device',
     System: device.System,
     SubSystem: device.SubSystem,
   }
@@ -687,10 +705,6 @@ const closeModal = () => {
 }
 
 const openLocationMindMap = () => {
-  if (form.value.Type === 'parts' && (!form.value.System || !form.value.SubSystem)) {
-    errorMessage.value = '零件必須先選擇系統與子系統'
-    return
-  }
   if (Boolean(form.value.System) !== Boolean(form.value.SubSystem)) {
     errorMessage.value = '系統與子系統必須一起選擇'
     return
@@ -725,8 +739,8 @@ const normalizeForm = (): RepairableDeviceInput => ({
   MaterialNo: form.value.MaterialNo?.trim() || null,
   // SerialNumber is optional and may be entered manually.
   SerialNumber: form.value.SerialNumber?.trim() || null,
+  PurchaseDate: form.value.PurchaseDate || null,
   CurrentLocationDeviceID: form.value.CurrentLocationDeviceID || null,
-  Type: form.value.Type,
   System: form.value.System?.trim() || null,
   SubSystem: form.value.SubSystem?.trim() || null,
 })
@@ -734,19 +748,11 @@ const normalizeForm = (): RepairableDeviceInput => ({
 const saveDevice = async () => {
   const data = normalizeForm()
   if (!data.DeviceName) {
-    errorMessage.value = '設備名稱為必填欄位'
+    errorMessage.value = '可修件名稱為必填欄位'
     return
   }
   if (!data.CurrentLocationDeviceID) {
     errorMessage.value = '請選擇目前位置；根節點請至位置維護作業新增'
-    return
-  }
-  if (!['Device', 'parts'].includes(data.Type)) {
-    errorMessage.value = '請選擇可修件類別'
-    return
-  }
-  if (data.Type === 'parts' && (!data.System || !data.SubSystem)) {
-    errorMessage.value = '零件必須選擇系統與子系統'
     return
   }
   if (Boolean(data.System) !== Boolean(data.SubSystem)) {
@@ -801,14 +807,8 @@ const removeDevice = async (device: RepairableDevice) => {
 
 const levelLabel = (level: number) => {
   if (level === 0) return '根節點'
-  if (level === 1) return '設備'
+  if (level === 1) return '可修件'
   return `L${level - 1}`
-}
-
-const typeLabel = (type: RepairableDevice['Type']) => {
-  if (type === 'location') return '位置'
-  if (type === 'Device') return '設備'
-  return '零件'
 }
 
 onMounted(() => {
@@ -853,28 +853,29 @@ onMounted(() => {
     <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <div id="device-search-help" class="border-b border-slate-200 bg-slate-50/50 px-4 py-3 text-sm text-slate-600" aria-live="polite">
         已載入 {{ devices.length }} 筆 · 目前顯示 {{ visibleDevices.length }} 筆
-        <p class="mt-1 text-xs text-slate-500">搜尋範圍為已載入資料；請先展開設備節點，再搜尋下層可修件。</p>
+        <p class="mt-1 text-xs text-slate-500">搜尋範圍為已載入資料；請先展開可修件節點，再搜尋下層項目。</p>
       </div>
       <div v-if="loading" class="p-8 text-center text-slate-500 animate-pulse">載入中…</div>
       <div v-else-if="visibleDevices.length === 0" class="p-8 text-center text-slate-500">
         <p class="font-medium text-slate-700">{{ keyword ? '沒有符合搜尋條件的可修件' : '目前沒有可修件資料' }}</p>
-        <p class="mt-2 text-sm">{{ keyword ? '請調整關鍵字，或清除搜尋後展開設備節點。' : '請先至「位置維護作業」建立位置，再新增可修件。' }}</p>
+        <p class="mt-2 text-sm">{{ keyword ? '請調整關鍵字，或清除搜尋後展開可修件節點。' : '請先至「位置維護作業」建立位置，再新增可修件。' }}</p>
         <button v-if="keyword" type="button" class="mt-4 rounded-lg border border-slate-300 px-4 py-2 text-sm text-blue-700" @click="keyword = ''">清除搜尋</button>
       </div>
-      <div v-else class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-slate-200">
+      <div v-else>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-slate-200">
           <thead class="bg-slate-50">
             <tr>
               <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">階層</th>
-              <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">類型</th>
               <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">料號</th>
               <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">序號</th>
+              <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">購買日期</th>
               <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">目前位置</th>
               <th class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500">操作</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-200 bg-white">
-            <tr v-for="device in visibleDevices" :key="device.DeviceID" class="hover:bg-slate-50">
+            <tr v-for="device in paginatedDevices" :key="device.DeviceID" class="hover:bg-slate-50">
               <td class="px-4 py-3">
                 <div class="flex items-center" :style="{ paddingLeft: `${device.HierarchyLevel * 20}px` }">
                   <button
@@ -913,13 +914,9 @@ onMounted(() => {
                   </div>
                 </div>
               </td>
-              <td class="px-4 py-3">
-                <span class="rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
-                  {{ typeLabel(device.Type) }}
-                </span>
-              </td>
               <td class="px-4 py-3 text-sm text-slate-600">{{ device.MaterialNo || '-' }}</td>
               <td class="px-4 py-3 text-sm text-slate-600">{{ device.SerialNumber || '-' }}</td>
+              <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-600">{{ device.PurchaseDate?.split('T')[0] || '-' }}</td>
               <td class="px-4 py-3 text-sm text-slate-600">
                 <template v-if="device.CurrentLocationDeviceID">
                   {{ device.CurrentLocationDeviceName || '-' }}
@@ -939,7 +936,47 @@ onMounted(() => {
               </td>
             </tr>
           </tbody>
-        </table>
+          </table>
+        </div>
+        <nav
+          class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-slate-50/50 px-4 py-3"
+          aria-label="可修件資料分頁"
+        >
+          <p class="text-sm text-slate-600">
+            顯示第 {{ pageStart }}–{{ pageEnd }} 筆，共 {{ visibleDevices.length }} 筆
+          </p>
+          <div class="flex items-center gap-1">
+            <button
+              type="button"
+              :disabled="currentPage === 1"
+              class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+              @click="currentPage--"
+            >
+              上一頁
+            </button>
+            <button
+              v-for="pageNumber in visiblePageNumbers"
+              :key="pageNumber"
+              type="button"
+              :aria-current="pageNumber === currentPage ? 'page' : undefined"
+              class="min-w-9 rounded-md border px-3 py-1.5 text-sm"
+              :class="pageNumber === currentPage
+                ? 'border-blue-600 bg-blue-600 text-white'
+                : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'"
+              @click="currentPage = pageNumber"
+            >
+              {{ pageNumber }}
+            </button>
+            <button
+              type="button"
+              :disabled="currentPage === totalPages"
+              class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+              @click="currentPage++"
+            >
+              下一頁
+            </button>
+          </div>
+        </nav>
       </div>
     </div>
 
@@ -965,26 +1002,18 @@ onMounted(() => {
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-slate-700">設備名稱 *</label>
+            <label class="block text-sm font-medium text-slate-700">可修件名稱 *</label>
             <input v-model="form.DeviceName" type="text" maxlength="100" required class="mt-1 block w-full rounded-md border border-slate-300 p-2 text-sm shadow-sm" />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-slate-700">可修件類別 <span class="text-red-500">*</span></label>
-            <select v-model="form.Type" required class="mt-1 block w-full rounded-md border border-slate-300 p-2 text-sm shadow-sm" @change="onTypeChanged">
-              <option value="Device">設備</option>
-              <option value="parts">零件</option>
-            </select>
           </div>
 
           <div class="grid gap-4 sm:grid-cols-2">
             <div>
               <label class="block text-sm font-medium text-slate-700">
-                系統 <span v-if="form.Type === 'parts'" class="text-red-500">*</span>
+                系統 <span v-if="form.SubSystem" class="text-red-500">*</span>
               </label>
               <select
                 v-model="form.System"
-                :required="form.Type === 'parts' || Boolean(form.SubSystem)"
+                :required="Boolean(form.SubSystem)"
                 :disabled="mainSystemsLoading"
                 class="mt-1 block w-full rounded-md border border-slate-300 p-2 text-sm shadow-sm disabled:bg-slate-100"
                 @change="onSystemChanged"
@@ -997,11 +1026,11 @@ onMounted(() => {
             </div>
             <div>
               <label class="block text-sm font-medium text-slate-700">
-                子系統 <span v-if="form.Type === 'parts'" class="text-red-500">*</span>
+                子系統 <span v-if="form.System" class="text-red-500">*</span>
               </label>
               <select
                 v-model="form.SubSystem"
-                :required="form.Type === 'parts' || Boolean(form.System)"
+                :required="Boolean(form.System)"
                 :disabled="!form.System || subSystemsLoading"
                 class="mt-1 block w-full rounded-md border border-slate-300 p-2 text-sm shadow-sm disabled:bg-slate-100"
                 @change="onSubSystemChanged"
@@ -1041,6 +1070,14 @@ onMounted(() => {
               />
               <p class="mt-1 text-xs text-slate-500">序號可手動輸入，也可以留白。</p>
             </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700">購買日期</label>
+              <input
+                v-model="form.PurchaseDate"
+                type="date"
+                class="mt-1 block w-full rounded-md border border-slate-300 p-2 text-sm shadow-sm"
+              />
+            </div>
           </div>
 
           <div>
@@ -1062,11 +1099,7 @@ onMounted(() => {
                 開啟樹狀圖
               </button>
             </div>
-            <p class="mt-1 text-xs text-slate-500">
-              {{ form.Type === 'Device'
-                ? '設備的目前位置只能從樹狀圖的位置節點選擇。'
-                : '零件的目前位置可從相同系統與子系統樹狀圖中選擇設備或零件。' }}
-            </p>
+            <p class="mt-1 text-xs text-slate-500">目前位置請從樹狀圖選擇可用的上層節點。</p>
           </div>
         </div>
         <div class="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-3">
@@ -1077,7 +1110,6 @@ onMounted(() => {
     </div>
     <RepairableLocationMindMap
       v-if="locationMindMapVisible"
-      :repairable-type="form.Type"
       :system="form.System"
       :sub-system="form.SubSystem"
       :exclude-device-id="editingDevice?.DeviceID"

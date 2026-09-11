@@ -46,27 +46,39 @@ BEGIN TRY
     (
         SELECT 1
         FROM dbo.RepairableCategories
-        WHERE CategoryCode = 'Device'
+        WHERE CategoryCode = 'repairable'
     )
     BEGIN
         INSERT INTO dbo.RepairableCategories
             (CategoryName, CategoryCode, SortOrder)
         VALUES
-            (N'設備', 'Device', 2);
+            (N'可修件', 'repairable', 2);
     END;
 
     IF NOT EXISTS
     (
         SELECT 1
         FROM dbo.RepairableCategories
-        WHERE CategoryCode = 'parts'
+        WHERE CategoryCode = 'non_repairable'
     )
     BEGIN
         INSERT INTO dbo.RepairableCategories
             (CategoryName, CategoryCode, SortOrder)
         VALUES
-            (N'零件', 'parts', 3);
+            (N'非可修件', 'non_repairable', 3);
     END;
+
+    UPDATE dbo.RepairableCategories
+    SET CategoryName = CASE CategoryCode
+            WHEN 'repairable' THEN N'可修件'
+            WHEN 'non_repairable' THEN N'非可修件'
+        END,
+        UpdatedAt = SYSUTCDATETIME()
+    WHERE CategoryCode IN ('repairable', 'non_repairable')
+      AND CategoryName <> CASE CategoryCode
+            WHEN 'repairable' THEN N'可修件'
+            WHEN 'non_repairable' THEN N'非可修件'
+        END;
 
     COMMIT TRANSACTION;
 END TRY

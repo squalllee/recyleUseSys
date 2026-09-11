@@ -9,8 +9,6 @@ SET XACT_ABORT ON;
       Locations.LocationName -> RepairableDevices.DeviceName
       MaterialNo/SerialNumber/System/SubSystem -> NULL
       CurrentLocationDeviceID -> NULL (root)
-      Type -> location
-
     The source Locations table is intentionally retained because existing
     maintenance records still store LocationCode values. This script is
     idempotent: existing location roots are refreshed and missing roots are
@@ -26,21 +24,9 @@ BEGIN TRY
     IF OBJECT_ID(N'dbo.RepairableDevices', N'U') IS NULL
         THROW 50041, 'dbo.RepairableDevices does not exist.', 1;
 
-    IF OBJECT_ID(N'dbo.RepairableCategories', N'U') IS NULL
-        THROW 50042, 'dbo.RepairableCategories does not exist.', 1;
-
-    IF COL_LENGTH(N'dbo.RepairableDevices', N'Type') IS NULL
-       OR COL_LENGTH(N'dbo.RepairableDevices', N'System') IS NULL
+    IF COL_LENGTH(N'dbo.RepairableDevices', N'System') IS NULL
        OR COL_LENGTH(N'dbo.RepairableDevices', N'SubSystem') IS NULL
         THROW 50043, 'RepairableDevices classification columns do not exist.', 1;
-
-    IF NOT EXISTS
-    (
-        SELECT 1
-        FROM dbo.RepairableCategories
-        WHERE CategoryCode = 'location'
-    )
-        THROW 50044, 'The location repairable category does not exist.', 1;
 
     IF EXISTS
     (
@@ -76,8 +62,7 @@ BEGIN TRY
         FROM dbo.Locations AS source
         INNER JOIN dbo.RepairableDevices AS target
             ON target.DeviceID = source.LocationCode
-        WHERE target.[Type] <> 'location'
-           OR target.CurrentLocationDeviceID IS NOT NULL
+        WHERE target.CurrentLocationDeviceID IS NOT NULL
     )
         THROW 50048, 'A LocationCode already belongs to a non-root repairable node.', 1;
 
@@ -87,15 +72,13 @@ BEGIN TRY
         target.MaterialNo = NULL,
         target.SerialNumber = NULL,
         target.CurrentLocationDeviceID = NULL,
-        target.[Type] = 'location',
         target.[System] = NULL,
         target.[SubSystem] = NULL,
         target.UpdatedAt = SYSUTCDATETIME()
     FROM dbo.RepairableDevices AS target
     INNER JOIN dbo.Locations AS source
         ON source.LocationCode = target.DeviceID
-    WHERE target.[Type] = 'location'
-      AND target.CurrentLocationDeviceID IS NULL;
+    WHERE target.CurrentLocationDeviceID IS NULL;
 
     DECLARE @UpdatedRows INT = @@ROWCOUNT;
 
@@ -107,7 +90,6 @@ BEGIN TRY
         MaterialNo,
         SerialNumber,
         CurrentLocationDeviceID,
-        [Type],
         [System],
         [SubSystem]
     )
@@ -117,7 +99,6 @@ BEGIN TRY
         NULL,
         NULL,
         NULL,
-        'location',
         NULL,
         NULL
     FROM dbo.Locations AS source
@@ -145,8 +126,7 @@ BEGIN TRY
     FROM dbo.Locations AS source
     INNER JOIN dbo.RepairableDevices AS target
         ON target.DeviceID = source.LocationCode
-    WHERE target.[Type] <> 'location'
-       OR target.CurrentLocationDeviceID IS NOT NULL
+        WHERE target.CurrentLocationDeviceID IS NOT NULL
        OR target.MaterialNo IS NOT NULL
        OR target.SerialNumber IS NOT NULL
        OR target.[System] IS NOT NULL
@@ -164,8 +144,7 @@ BEGIN TRY
         @UpdatedRows AS UpdatedRootRows,
         (SELECT COUNT(*)
          FROM dbo.RepairableDevices
-         WHERE [Type] = 'location'
-           AND CurrentLocationDeviceID IS NULL) AS TotalLocationRootRows,
+         WHERE CurrentLocationDeviceID IS NULL) AS TotalLocationRootRows,
         @MissingRows AS MissingRootRows,
         @InvalidRootRows AS InvalidRootRows;
 END TRY
